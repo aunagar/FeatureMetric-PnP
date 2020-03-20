@@ -102,10 +102,10 @@ def create_image_matrix(points_2d):
 if __name__ == "__main__":
     points_3d = init_3d_points()
     points_2d = project_3d_points_to_image(P_DEFAULT,points_3d)
-    P = np.dot(K,np.array([[1.0,0.0,0.0,0.0],[0.0,1.0,0.0,0.0],[1.0,1.0,1.0,0.0]]))
-    points_2d_2 = project_3d_points_to_image(P,points_3d)
+    # P = np.dot(K,np.array([[1.0,0.0,0.0,0.0],[0.0,1.0,0.0,0.0],[1.0,1.0,1.0,0.0]]))
+    # points_2d_2 = project_3d_points_to_image(P,points_3d)
     coords = create_image_matrix(points_2d)
-    coords_2 = create_image_matrix(points_2d_2)
+    # coords_2 = create_image_matrix(points_2d_2)
 
     with open("data/" + NAME+"_data.txt","w") as file: # Use file to refer to the file object
         file.write("K:\n")
