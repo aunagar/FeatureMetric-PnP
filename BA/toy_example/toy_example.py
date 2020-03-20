@@ -5,23 +5,23 @@ import scipy.stats as st
 import random
 import pandas as pd
 NAME ="toyexample_1"
-IMSIZE = np.array([64, 64])
+IMSIZE = np.array([128, 128])
 
-SCALE_FACTOR_X = 10 #pixels per distance
+SCALE_FACTOR_X = 100 #pixels per distance
 SCALE_FACTOR_Y = SCALE_FACTOR_X
 
 FOCAL_LENGTH = 0.05
 
-x0 = IMSIZE[0]/2./SCALE_FACTOR_X 
-y0 = IMSIZE[1]/2./SCALE_FACTOR_Y
+x0 = IMSIZE[0]/2.
+y0 = IMSIZE[1]/2.
 
-NUM_POINTS = 6
+NUM_POINTS = 15
 
-x_range = [-7.0,7.0]
-y_range = [-7.0,7.0]
+x_range = [-15,15.0]
+y_range = [-15,15.0]
 z_range = [1.0,3.0]
 
-KERNEL_SIZE = 25 #odd number
+KERNEL_SIZE = 5 #odd number
 
 USE_INTENSITY_OCTAVES = True
 
@@ -64,7 +64,8 @@ def visualize_scene():
 
 def create_image_matrix(points_2d):
     grayscale = np.zeros(shape=(IMSIZE))
-    coords = points_2d.transpose() * np.array([SCALE_FACTOR_X, SCALE_FACTOR_Y])
+    coords = points_2d.transpose() #* np.array([SCALE_FACTOR_X, SCALE_FACTOR_Y])
+    print(coords)
     coords = np.around(coords)
     coords = coords.astype(int) -1
     coords=np.flip(coords) # coordinate order is (y_index, x_index)!
@@ -94,25 +95,28 @@ def create_image_matrix(points_2d):
     
     plt.imshow(grayscale,'gray')
     plt.imsave(NAME + ".png", grayscale, cmap="gray")
-    #plt.show() #remove comment if you want to see image
+    plt.show() #remove comment if you want to see image
     return coords
     
 
 if __name__ == "__main__":
     points_3d = init_3d_points()
     points_2d = project_3d_points_to_image(P_DEFAULT,points_3d)
+    P = np.dot(K,np.array([[1.0,0.0,0.0,0.0],[0.0,1.0,0.0,0.0],[1.0,1.0,1.0,0.0]]))
+    points_2d_2 = project_3d_points_to_image(P,points_3d)
     coords = create_image_matrix(points_2d)
+    coords_2 = create_image_matrix(points_2d_2)
 
     with open("data/" + NAME+"_data.txt","w") as file: # Use file to refer to the file object
         file.write("K:\n")
-        file.write(K.__repr__())
+        file.write(str(K))
         file.write("\nP_DEFAULT:\n")
-        file.write(P_DEFAULT.__repr__())
+        file.write(str(P_DEFAULT))
         file.write("\n3D points:\n")
-        file.write(points_3d.__repr__())
+        file.write(str(points_3d))
         file.write("\n2D points:\n")
-        file.write(points_2d.__repr__())
+        file.write(str(points_2d))
         file.write("\n2D pixel coordinates:\n")
-        file.write(coords.__repr__())
+        file.write(str(coords))
         
 
