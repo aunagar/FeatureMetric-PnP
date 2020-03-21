@@ -6,6 +6,16 @@ import torch
 import numpy as np
 import kornia
 
+
+def scaled_loss(x, fn, a):
+    a2 = a**2
+    loss, loss_d1, loss_d2 = fn(x/a2)
+    return loss*a2, loss_d1, loss_d2/a2
+
+def squared_loss(x):
+    return x, torch.ones_like(x), torch.zeros_like(x)
+
+
 def sobel_filter(feature_map, batch = False):
     """
     Apply 3x3 sobel filter on the n-dimensional feature map
@@ -22,12 +32,14 @@ def sobel_filter(feature_map, batch = False):
     assert len(feature_map.shape) > 2
 
     if batch:
-        grad = kornia.filters.SpatialGradient(feature_map)
-        return grad[:,:,0,:,:]
+        grad = kornia.filters.spatial_gradient(feature_map)
+        return grad[:,:,0,:,:], grad[:, :, 1, :, :]
     else:
         feature_map = feature_map[None,...]
-        grad = kornia.filters.SpatialGradient(feature_map)
-        return grad[:,:,0,:,:].reshape(feature_map.shape), grad[:,:,1,:,:].reshape(feature_map.shape)
+        grad = kornia.filters.spatial_gradient(feature_map)
+        grad_x = grad[:,:,0,:,:].reshape(feature_map.shape[1:])
+        grad_y = grad[:,:,1,:,:].reshape(feature_map.shape[1:])
+        return grad_x, grad_y
 
 def to_homogeneous(points):
     """Convert N-dimensional points to homogeneous coordinates.
@@ -45,7 +57,6 @@ def to_homogeneous(points):
     else:
         raise ValueError
 
-
 def from_homogeneous(points):
     """Remove the homogeneous dimension of N-dimensional points.
     Args:
@@ -54,7 +65,6 @@ def from_homogeneous(points):
         A torch.Tensor or numpy ndarray with size (..., N).
     """
     return points[..., :-1] / points[..., -1:]
-
 
 def batched_eye_like(x, n):
     """Create a batch of identity matrices.
@@ -66,14 +76,12 @@ def batched_eye_like(x, n):
     """
     return torch.eye(n).to(x)[None].repeat(len(x), 1, 1)
 
-
 def create_norm_matrix(shift, scale):
     """Create a normalization matrix that shifts and scales points."""
     T = batched_eye_like(shift, 3)
     T[:, 0, 0] = T[:, 1, 1] = scale
     T[:, :2, 2] = shift
     return T
-
 
 def normalize_keypoints(kpts, size=None, shape=None):
     """Normalize a set of 2D keypoints for input to a neural network.
@@ -101,7 +109,6 @@ def normalize_keypoints(kpts, size=None, shape=None):
     T_norm_inv = create_norm_matrix(-shift/scale[:, None], 1./scale)
     return kpts, T_norm, T_norm_inv
 
-
 def skew_symmetric(v):
     """Create a skew-symmetric matrix from a (batched) vector of size (..., 3).
     """
@@ -113,11 +120,9 @@ def skew_symmetric(v):
     ], dim=-1).reshape(v.shape[:-1]+(3, 3))
     return M
 
-
 def T_to_E(T):
     """Convert batched poses (..., 4, 4) to batched essential matrices."""
     return T[..., :3, :3] @ skew_symmetric(T[..., :3, 3])
-
 
 def sym_epipolar_distance(p0, p1, E):
     """Compute batched symmetric epipolar distances.
@@ -139,7 +144,6 @@ def sym_epipolar_distance(p0, p1, E):
         1. / (Et_p1[..., 0]**2 + Et_p1[..., 1]**2 + 1e-15))
     return d
 
-
 def so3exp_map(w):
     """Compute rotation matrices from batched twists.
     Args:
@@ -153,3 +157,4 @@ def so3exp_map(w):
     res = W * torch.sin(theta) + (W @ W) * (1 - torch.cos(theta))
     res = torch.where(theta < 1e-12, torch.zeros_like(res), res)
     return torch.eye(3).to(W) + res
+
