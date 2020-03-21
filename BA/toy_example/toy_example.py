@@ -31,8 +31,8 @@ pad_right = int((KERNEL_SIZE +1) /2)
 #use fixed point cloud -> Set points_3d = point_cloud in __main__
 point_cloud = np.array(
     [
-    [2,4,-3,5],
-    [-1.0,1.9,-0.0, -6.0],
+    [0,4,-3,5],
+    [0,1.9,-0.0, -6.0],
     [1.0,1.0,2.0,2.0],
     [1.0,1.0,1.0,1.0]
     ]
@@ -62,16 +62,17 @@ def project_3d_points_to_image(proj_matrix, points):
 def visualize_scene():
     return 0
 
-def create_image_matrix(points_2d):
+def create_image_matrix(points_2d, image_suffix= ""):
     grayscale = np.zeros(shape=(IMSIZE))
     coords = points_2d.transpose() #* np.array([SCALE_FACTOR_X, SCALE_FACTOR_Y])
-    print(coords)
+    #print(coords)
     coords = np.around(coords)
     coords = coords.astype(int) -1
-    coords=np.flip(coords) # coordinate order is (y_index, x_index)!
+    coords=np.flip(coords, axis=1) # coordinate order is (y_index, x_index)!
+    mask = (coords[:,0] > pad_left) & (coords[:,0] < IMSIZE[0]-pad_right)
+    mask = mask & (coords[:,1] > pad_left) & (coords[:,1] < IMSIZE[1]-pad_right)
 
-    coords=coords[(coords[:,0] > pad_left) & (coords[:,0] < IMSIZE[0]-pad_right)]
-    coords=coords[(coords[:,1] > pad_left) & (coords[:,1] < IMSIZE[1]-pad_right)]
+    coords=coords[mask]
 
     #print(coords.T)
     lost_points = points_2d.shape[1]-coords.shape[0]
@@ -94,29 +95,27 @@ def create_image_matrix(points_2d):
         point[1]-pad_left:point[1]+pad_right]=np.maximum(patch,grayscale[tuple(point)] * kernel)
     
     plt.imshow(grayscale,'gray')
-    plt.imsave(NAME + ".png", grayscale, cmap="gray")
-    plt.show() #remove comment if you want to see image
-    return coords
+    plt.imsave("data/"+NAME + image_suffix +".png", grayscale, cmap="gray")
+    #plt.show() #remove comment if you want to see image
+    return mask
     
 
 if __name__ == "__main__":
+    
     points_3d = init_3d_points()
     points_2d = project_3d_points_to_image(P_DEFAULT,points_3d)
-    # P = np.dot(K,np.array([[1.0,0.0,0.0,0.0],[0.0,1.0,0.0,0.0],[1.0,1.0,1.0,0.0]]))
-    # points_2d_2 = project_3d_points_to_image(P,points_3d)
-    coords = create_image_matrix(points_2d)
-    # coords_2 = create_image_matrix(points_2d_2)
+    #P = np.dot(K,np.array([[1.0,0.0,0.0,0.0],[0.0,1.0,0.0,0.0],[1.0,1.0,1.0,0.0]]))
+    #points_2d_2 = project_3d_points_to_image(P,points_3d)
+    mask = create_image_matrix(points_2d)
+    #coords_2 = create_image_matrix(points_2d_2, image_suffix="_2")
+    df = pd.DataFrame(columns=["X","Y","Z","x","y","found"], index = range(len(mask)))
+    df.loc[:,["X","Y","Z"]] = points_3d[:3,:].T
+    df.loc[:,["x","y"]] = points_2d.T
+    df.loc[:,"found"] = mask
 
-    with open("data/" + NAME+"_data.txt","w") as file: # Use file to refer to the file object
-        file.write("K:\n")
-        file.write(str(K))
-        file.write("\nP_DEFAULT:\n")
-        file.write(str(P_DEFAULT))
-        file.write("\n3D points:\n")
-        file.write(str(points_3d))
-        file.write("\n2D points:\n")
-        file.write(str(points_2d))
-        file.write("\n2D pixel coordinates:\n")
-        file.write(str(coords))
+    np.save("data/"+NAME+"_K.npy", K) # K = np.load("data/"+NAME+"_K.npy")
+    np.save("data/"+NAME+"_P.npy", P_DEFAULT) # P = np.load("data/"+NAME+"_P.npy")
+        
+    df.to_csv("data/"+NAME+"_data.csv", sep = ";")
         
 
