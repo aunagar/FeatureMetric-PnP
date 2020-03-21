@@ -4,6 +4,8 @@ import matplotlib.pyplot as plt
 import scipy.stats as st
 import random
 import pandas as pd
+import pickle
+
 NAME ="toyexample_1"
 IMSIZE = np.array([128, 128])
 
@@ -21,9 +23,9 @@ x_range = [-15,15.0]
 y_range = [-15,15.0]
 z_range = [1.0,3.0]
 
-KERNEL_SIZE = 5 #odd number
+KERNEL_SIZE = 15 #odd number
 
-USE_INTENSITY_OCTAVES = True
+USE_INTENSITY_OCTAVES = False
 
 pad_left = int((KERNEL_SIZE -1) /2)
 pad_right = int((KERNEL_SIZE +1) /2)
@@ -117,5 +119,11 @@ if __name__ == "__main__":
     np.save("data/"+NAME+"_P.npy", P_DEFAULT) # P = np.load("data/"+NAME+"_P.npy")
         
     df.to_csv("data/"+NAME+"_data.csv", sep = ";")
+
+    data_final = {'K':K, 'T_matrix':P_DEFAULT, '3d_points':points_3d[:3,:].T[mask], 
+                    '2d_points':points_2d.T[mask]}
+    pickle.dump(data_final, open("data/" + NAME + "_data.p", "wb"))
+
+    
         
 
