@@ -1,14 +1,14 @@
 from __future__ import print_function, division
 
 from .utils import (from_homogeneous, to_homogeneous,
-				batched_eye_like, skew_symmetric, so3exp_map)
+                batched_eye_like, skew_symmetric, so3exp_map)
 
 from .utils import squared_loss, scaled_loss
 import torch
 from torch import nn
 import numpy as np
 
-def optimizer_step(g, H, lambda_=0):
+def optimizer_step(g, H, lambda_=0, lr = 1e-5, optimizer = 'newton'):
     """One optimization step with Gauss-Newton or Levenberg-Marquardt.
     Args:
         g: batched gradient tensor of size (..., N).
@@ -23,7 +23,10 @@ def optimizer_step(g, H, lambda_=0):
     except RuntimeError as e:
         logging.warning(f'Determinant: {torch.det(H)}')
         raise e
-    delta = -(P @ g[..., None])[..., 0]
+    if optimizer == 'gd':
+        delta = -lr * g
+    else:
+        delta = -lr*(P @ g[..., None])[..., 0]
     return delta
 
 def indexing_(feature_map, points):
@@ -74,10 +77,10 @@ class sparse3DBA(nn.Module):
 
         lambda_ = self.lambda_
         for i in range(self.iterations):
-            p_3d_1 = pts3D @ R.T + t
-            p_proj_1 = from_homogeneous(p_3d_1 @ K).type(torch.IntTensor)-1
-
-            error = indexing_(feature_map_query, p_proj_1) - feature_ref
+            p_3d_1 = torch.mm(R.T, pts3D.T).T + t
+            p_proj_1 = from_homogeneous(torch.mm(K, p_3d_1.T).T).type(torch.IntTensor)-1
+            # print(p_proj_1)
+            error = indexing_(feature_map_query, torch.flip(p_proj_1,(1,))) - feature_ref
             cost = 0.5*(error**2).sum(-1)
 
             # cost, weights, _ = scaled_loss(
@@ -89,25 +92,27 @@ class sparse3DBA(nn.Module):
                 prev_cost = cost.mean(-1)
             if self.verbose:
                 print('Iter ', i, cost.mean().item())
-
+            print("prev cost is ", prev_cost)
             J_p_T = torch.cat([
                 batched_eye_like(p_3d_1, 3), -skew_symmetric(p_3d_1)], -1)
-            print("J_p_T is ", J_p_T)
+            print("J_p_T is ", J_p_T.shape)
             shape = p_3d_1.shape[:-1]
             o, z = p_3d_1.new_ones(shape), p_3d_1.new_zeros(shape)
+
             J_e_p = torch.stack([
-                o, z, -p_3d_1[..., 0] / p_3d_1[..., 2],
-                z, o, -p_3d_1[..., 1] / p_3d_1[..., 2],
+                K[0,0]*o, z, -K[0,0]*p_3d_1[..., 0] / p_3d_1[..., 2],
+                z, K[1,1]*o, -K[1,1]*p_3d_1[..., 1] / p_3d_1[..., 2],
             ], dim=-1).reshape(shape+(2, 3)) / p_3d_1[..., 2, None, None]
 
-            print("J_e_p is ", J_e_p)
+            # J_e_p = 
+            print("J_e_p is ", J_e_p.shape)
 
-            grad_x_points = indexing_(feature_grad_x, p_proj_1)
-            grad_y_points = indexing_(feature_grad_y, p_proj_1)
+            grad_x_points = indexing_(feature_grad_x, torch.flip(p_proj_1,(1,)))
+            grad_y_points = indexing_(feature_grad_y, torch.flip(p_proj_1,(1,)))
 
             J_p_F = torch.cat((grad_x_points[..., None], grad_y_points[...,None]), -1)
 
-            print("J_p_F is ", J_p_F)
+            print("J_p_F is ", J_p_F.shape)
             J_e_T = J_p_F @ J_e_p @ J_p_T
 
             Grad = torch.einsum('...ijk,...ij->...ik', J_e_T, error)
@@ -130,19 +135,21 @@ class sparse3DBA(nn.Module):
             R_new = dr @ R
             t_new = dr @ t + dt
 
-            new_proj_1 = from_homogeneous(pts3D @R_new.T + t_new).type(torch.IntTensor)
-            new_error = indexing_(feature_map_query, new_proj_1) - feature_ref
-            new_cost = (new_error**2).sum(-1)
+            new_proj_1 = from_homogeneous(torch.mm(K, (pts3D @ R_new.T + t_new).T).T).type(torch.IntTensor) - 1
+            # print(new_proj_1)
+            new_error = indexing_(feature_map_query, torch.flip(new_proj_1, (1,))) - feature_ref
+            new_cost = 0.5*(new_error**2).sum(-1)
             # new_cost = scaled_loss(new_cost, self.loss_fn, scale[..., None])[0]
             # new_cost = (confidence*new_cost).mean(-1)
             new_cost = new_cost.mean(-1)
-
+            print("new cost is ", new_cost)
             lambda_ = np.clip(lambda_ * (10 if new_cost > prev_cost else 1/10),
-                              1e-6, 1e2)
-            if new_cost > prev_cost:  # cost increased
-            	print("cost increased, continue with next iteration")
-            	continue
+                              1e-6, 1e4)
+            # if new_cost > prev_cost:  # cost increased
+            #     print("cost increased, continue with next iteration")
+            #     print(lambda_)
+            #     continue
             prev_cost = new_cost
             R, t = R_new, t_new
-
+            # print(np.linalg.det(R.data.numpy()))
         return R, t

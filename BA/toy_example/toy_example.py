@@ -23,7 +23,7 @@ x_range = [-15,15.0]
 y_range = [-15,15.0]
 z_range = [1.0,3.0]
 
-KERNEL_SIZE = 15 #odd number
+KERNEL_SIZE = 25 #odd number
 
 USE_INTENSITY_OCTAVES = False
 
