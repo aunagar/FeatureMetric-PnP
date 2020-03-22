@@ -8,7 +8,7 @@ import torch
 from torch import nn
 import numpy as np
 
-def optimizer_step(g, H, lambda_=0, lr = 1e-5, optimizer = 'newton'):
+def optimizer_step(g, H, lambda_=0, lr = 0.001, optimizer = 'newton'):
     """One optimization step with Gauss-Newton or Levenberg-Marquardt.
     Args:
         g: batched gradient tensor of size (..., N).

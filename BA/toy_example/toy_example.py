@@ -7,7 +7,7 @@ import pandas as pd
 import pickle
 
 NAME ="toyexample_1"
-IMSIZE = np.array([128, 128])
+IMSIZE = np.array([256, 256])
 
 SCALE_FACTOR_X = 100 #pixels per distance
 SCALE_FACTOR_Y = SCALE_FACTOR_X
@@ -23,7 +23,7 @@ x_range = [-15,15.0]
 y_range = [-15,15.0]
 z_range = [1.0,3.0]
 
-KERNEL_SIZE = 25 #odd number
+KERNEL_SIZE = 35 #odd number
 
 USE_INTENSITY_OCTAVES = False
 
