@@ -2,13 +2,13 @@ from __future__ import print_function, division
 
 from .utils import (from_homogeneous, to_homogeneous,
                 batched_eye_like, skew_symmetric, so3exp_map)
-
+import cv2
 from .utils import squared_loss, scaled_loss
 import torch
 from torch import nn
 import numpy as np
 
-def optimizer_step(g, H, lambda_=0, lr = 1.):
+def optimizer_step(g, H, lambda_=0, lr = 0.001, optimizer = 'newton'):
     """One optimization step with Gauss-Newton or Levenberg-Marquardt.
     Args:
         g: batched gradient tensor of size (..., N).
@@ -23,7 +23,10 @@ def optimizer_step(g, H, lambda_=0, lr = 1.):
     except RuntimeError as e:
         logging.warning(f'Determinant: {torch.det(H)}')
         raise e
-    delta = -lr * (P @ g[..., None])[..., 0] # generally learning rate does not make sense for second order methods
+    if optimizer == 'gd':
+        delta = -lr * g
+    else:
+        delta = -(P @ g[..., None])[..., 0]
     return delta
 
 def indexing_(feature_map, points):
@@ -62,10 +65,8 @@ class sparse3DBA(nn.Module):
         @feature_map_query: feature map for the query image (CxHxW)
         @feature_grad_x : feature gradient map for query image (CxHxW)
         @feature_grad_y : feature gradient map for query image (CxHxW)
-        @K: Camera matrix
         '''
-
-        if R_init is None: # If R is not inialized, initialize it as identity
+        if R_init is None:
             R = torch.eye(3).to(pts3D)
         else:
             R = R_init
@@ -74,14 +75,14 @@ class sparse3DBA(nn.Module):
         else:
             t = t_init
 
-        lambda_ = self.lambda_ # lambda for LM method
+        lambda_ = self.lambda_
         for i in range(self.iterations):
-
-            # project point using current R and T on image
             p_3d_1 = torch.mm(R.T, pts3D.T).T + t
             p_proj_1 = from_homogeneous(torch.mm(K, p_3d_1.T).T).type(torch.IntTensor)-1
-            # print(p_proj_1)
-            error = indexing_(feature_map_query, torch.flip(p_proj_1,(1,))) - feature_ref
+            
+            error = torch.flip(p_proj_1, (1,)) - feature_ref
+            error = error.type(torch.DoubleTensor)
+            # error = indexing_(feature_map_query, torch.flip(p_proj_1,(1,))) - feature_ref
             cost = 0.5*(error**2).sum(-1)
 
             # cost, weights, _ = scaled_loss(
@@ -94,43 +95,41 @@ class sparse3DBA(nn.Module):
             if self.verbose:
                 print('Iter ', i, cost.mean().item())
             print("prev cost is ", prev_cost)
-
-            # Gradient of 3D point P with respect to projection matrix T ([R|t])
             J_p_T = torch.cat([
                 batched_eye_like(p_3d_1, 3), -skew_symmetric(p_3d_1)], -1)
             print("J_p_T is ", J_p_T.shape)
             shape = p_3d_1.shape[:-1]
             o, z = p_3d_1.new_ones(shape), p_3d_1.new_zeros(shape)
 
-            # Gradient of pixel point px with respect to 3D point P
-            J_px_p = torch.stack([
+            J_e_p = torch.stack([
                 K[0,0]*o, z, -K[0,0]*p_3d_1[..., 0] / p_3d_1[..., 2],
                 z, K[1,1]*o, -K[1,1]*p_3d_1[..., 1] / p_3d_1[..., 2],
             ], dim=-1).reshape(shape+(2, 3)) / p_3d_1[..., 2, None, None]
 
-            print("J_px_p is ", J_px_p.shape)
+            # J_e_p = 
+            print("J_e_p is ", J_e_p.shape)
 
-            # feature gradient at projected pixel coordinates
             grad_x_points = indexing_(feature_grad_x, torch.flip(p_proj_1,(1,)))
             grad_y_points = indexing_(feature_grad_y, torch.flip(p_proj_1,(1,)))
 
-            # gradient of features with respect to pixel points
-            J_f_px = torch.cat((grad_x_points[..., None], grad_y_points[...,None]), -1)
+            J_p_F = torch.cat((grad_x_points[..., None], grad_y_points[...,None]), -1)
 
-            print("J_f_px is ", J_f_px.shape)
-            J_e_T = J_f_px @ J_px_p @ J_p_T # (J_e_T is gradient of error with respect to matrix T)
+            # print("J_p_F is ", J_p_F.shape)
+            # J_e_T = J_p_F @ J_e_p @ J_p_T
+
+            J_e_T = J_e_p @ J_p_T
 
             Grad = torch.einsum('...ijk,...ij->...ik', J_e_T, error)
             # Grad = weights[..., None] * Grad
             Grad = Grad.sum(-2)  # Grad was ... x N x 6
 
-            J = J_e_T # final jacobian
-            Hess = torch.einsum('...ijk,...ijl->...ikl', J, J) # Approximate Hessian = J.T * J
+            J = J_e_T
+            Hess = torch.einsum('...ijk,...ijl->...ikl', J, J)
             # Hess = weights[..., None, None] * Hess
             Hess = Hess.sum(-3)  # Hess was ... x N x 6 x 6
 
-            # finding gradient step using LM or Newton method
             delta = optimizer_step(Grad, Hess, lambda_)
+            # delta = -1e-5*Grad
             if torch.isnan(delta).any():
                 logging.warning('NaN detected, exit')
                 break
@@ -142,15 +141,17 @@ class sparse3DBA(nn.Module):
             t_new = dr @ t + dt
 
             new_proj_1 = from_homogeneous(torch.mm(K, (pts3D @ R_new.T + t_new).T).T).type(torch.IntTensor) - 1
-            new_error = indexing_(feature_map_query, torch.flip(new_proj_1, (1,))) - feature_ref
+            # print(new_proj_1)
+            new_error = torch.flip(new_proj_1, (1,)) - feature_ref
+            new_error = new_error.type(torch.DoubleTensor)
+            # new_error = indexing_(feature_map_query, torch.flip(new_proj_1, (1,))) - feature_ref
             new_cost = 0.5*(new_error**2).sum(-1)
             # new_cost = scaled_loss(new_cost, self.loss_fn, scale[..., None])[0]
             # new_cost = (confidence*new_cost).mean(-1)
             new_cost = new_cost.mean(-1)
             print("new cost is ", new_cost)
             lambda_ = np.clip(lambda_ * (10 if new_cost > prev_cost else 1/10),
-                              1e-6, 1e4) # according to rule, we change the lambda if error increases/decreases
-            
+                              1e-6, 1e4)
             if new_cost > prev_cost:  # cost increased
                 print("cost increased, continue with next iteration")
                 print(lambda_)

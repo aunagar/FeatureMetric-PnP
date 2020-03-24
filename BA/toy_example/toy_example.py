@@ -17,13 +17,13 @@ FOCAL_LENGTH = 0.05
 x0 = IMSIZE[0]/2.
 y0 = IMSIZE[1]/2.
 
-NUM_POINTS = 15
+NUM_POINTS = 4
 
 x_range = [-15,15.0]
 y_range = [-15,15.0]
 z_range = [1.0,3.0]
 
-KERNEL_SIZE = 35 #odd number
+KERNEL_SIZE = 75 #odd number
 
 USE_INTENSITY_OCTAVES = False
 
