@@ -8,7 +8,7 @@ import torch
 from torch import nn
 import numpy as np
 
-def optimizer_step(g, H, lambda_=0, lr = 0.001, optimizer = 'newton'):
+def optimizer_step(g, H, lambda_=0, lr = 1.0):
     """One optimization step with Gauss-Newton or Levenberg-Marquardt.
     Args:
         g: batched gradient tensor of size (..., N).
@@ -23,10 +23,7 @@ def optimizer_step(g, H, lambda_=0, lr = 0.001, optimizer = 'newton'):
     except RuntimeError as e:
         logging.warning(f'Determinant: {torch.det(H)}')
         raise e
-    if optimizer == 'gd':
-        delta = -lr * g
-    else:
-        delta = -(P @ g[..., None])[..., 0]
+    delta = -lr*(P @ g[..., None])[..., 0]
     return delta
 
 def indexing_(feature_map, points):
@@ -76,6 +73,7 @@ class sparse3DBA(nn.Module):
             t = t_init
 
         lambda_ = self.lambda_
+        lr = 1.
         for i in range(self.iterations):
             p_3d_1 = torch.mm(R.T, pts3D.T).T + t
             p_proj_1 = from_homogeneous(torch.mm(K, p_3d_1.T).T).type(torch.IntTensor)-1
@@ -128,7 +126,7 @@ class sparse3DBA(nn.Module):
             # Hess = weights[..., None, None] * Hess
             Hess = Hess.sum(-3)  # Hess was ... x N x 6 x 6
 
-            delta = optimizer_step(Grad, Hess, lambda_)
+            delta = optimizer_step(Grad, Hess, lambda_, lr = lr)
             # delta = -1e-5*Grad
             if torch.isnan(delta).any():
                 logging.warning('NaN detected, exit')
@@ -154,7 +152,7 @@ class sparse3DBA(nn.Module):
                               1e-6, 1e4)
             if new_cost > prev_cost:  # cost increased
                 print("cost increased, continue with next iteration")
-                print(lambda_)
+                lr = np.clip(0.1*lr, 1e-3, 1.)
                 continue
             prev_cost = new_cost
             R, t = R_new, t_new
