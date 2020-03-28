@@ -6,10 +6,10 @@ import random
 import pandas as pd
 import pickle
 
-NAME ="toyexample_1"
-IMSIZE = np.array([256, 256])
+NAME ="toyexample_6"
+IMSIZE = np.array([1024, 1024])
 
-SCALE_FACTOR_X = 100 #pixels per distance
+SCALE_FACTOR_X = 1000 #pixels per distance
 SCALE_FACTOR_Y = SCALE_FACTOR_X
 
 FOCAL_LENGTH = 0.05
@@ -17,13 +17,13 @@ FOCAL_LENGTH = 0.05
 x0 = IMSIZE[0]/2.
 y0 = IMSIZE[1]/2.
 
-NUM_POINTS = 7
+NUM_POINTS = 20
 
-x_range = [-15,15.0]
-y_range = [-15,15.0]
-z_range = [1.0,3.0]
+x_range = [-30,30.0]
+y_range = [-30,30.0]
+z_range = [1.0,4.0]
 
-KERNEL_SIZE = 35 #odd number
+KERNEL_SIZE = 61 #odd number
 
 USE_INTENSITY_OCTAVES = False
 
@@ -103,7 +103,7 @@ def create_image_matrix(points_2d, image_suffix= ""):
     
 
 if __name__ == "__main__":
-    
+    print("Preparing toy example", NAME)
     points_3d = init_3d_points()
     points_2d = project_3d_points_to_image(P_DEFAULT,points_3d)
     #P = np.dot(K,np.array([[1.0,0.0,0.0,0.0],[0.0,1.0,0.0,0.0],[1.0,1.0,1.0,0.0]]))
@@ -114,7 +114,6 @@ if __name__ == "__main__":
     df.loc[:,["X","Y","Z"]] = points_3d[:3,:].T
     df.loc[:,["x","y"]] = points_2d.T
     df.loc[:,"found"] = mask
-
     np.save("data/"+NAME+"_K.npy", K) # K = np.load("data/"+NAME+"_K.npy")
     np.save("data/"+NAME+"_P.npy", P_DEFAULT) # P = np.load("data/"+NAME+"_P.npy")
         
@@ -123,6 +122,7 @@ if __name__ == "__main__":
     data_final = {'K':K, 'T_matrix':P_DEFAULT, '3d_points':points_3d[:3,:].T[mask], 
                     '2d_points':points_2d.T[mask]}
     pickle.dump(data_final, open("data/" + NAME + "_data.p", "wb"))
+    print("Finished writing toy example", NAME)
 
     
         
