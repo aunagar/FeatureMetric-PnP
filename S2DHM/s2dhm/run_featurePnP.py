@@ -21,6 +21,8 @@ parser = argparse.ArgumentParser(
 parser.add_argument(
     '--dataset', type=str, help = 'root path to the robotcar dataset', required=True)
 parser.add_argument(
+    '--result', type=str, help = 'path where you want to save the results', required=True)
+parser.add_argument(
     '--ref_image', type = str, help = 'reference image path (relative to Image folder)', required = False)
 parser.add_argument(
     '--query_image', type = str, help = 'query image path (relative to Image folder)', required = False)
@@ -97,4 +99,4 @@ if __name__ == '__main__':
     result['query_hypercolumn'] = query_hypercolumn
     result['reference_hypercolumn'] = reference_hypercolumn
 
-    pickle.dump(result, open("results/prediction.p", 'wb'))
+    pickle.dump(result, open(args.results + "prediction.p", 'wb'))
