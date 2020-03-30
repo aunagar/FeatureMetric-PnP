@@ -1,4 +1,5 @@
 import os
+import sys
 import numpy as np
 import gin
 import argparse
@@ -14,6 +15,14 @@ from datasets import base_dataset
 
 from pose_prediction.sparse_to_dense_featuremetric_predictor import SparseToDenseFeatureMetricPnP
 from datasets import dataload_helpers as data_helpers
+
+# this is a hack
+sys.path.insert(0, os.path.abspath('../../'))
+
+
+from BA.featureBA.src.model_philipp import sparse3DBA
+from BA.featureBA.src.utils import sobel_filter
+
 
 # Argparse
 parser = argparse.ArgumentParser(
@@ -102,7 +111,25 @@ if __name__ == '__main__':
     # result['query_hypercolumn'] = query_hypercolumn.numpy()
     # result['reference_hypercolumn'] = reference_hypercolumn.numpy()
 
-    np.save(args.result + "query_hypercolumn", query_hypercolumn.numpy())
-    np.save(args.result + "reference_hypercolumn", reference_hypercolumn.numpy())
+    # np.save(args.result + "query_hypercolumn", query_hypercolumn.numpy())
+    # np.save(args.result + "reference_hypercolumn", reference_hypercolumn.numpy())
     
     pickle.dump(result, open(args.result + "prediction.p", 'wb'))
+
+    pts3D = torch.from_numpy(prediction.points_3d.reshape(-1,3))
+    ref2d = torch.flip(torch.from_numpy(prediction.reference_inliers.astype(int)),(1,))
+    feature_ref = torch.cat([reference_hypercolumn.squeeze(0)[:, i, j].unsqueeze(0) for i, j in zip(ref2d[:,0],
+                            ref2d[:,1])]).type(torch.DoubleTensor)
+    feature_map_query = query_hypercolumn.squeeze(0).type(torch.DoubleTensor)
+    T_init = filename_to_pose['/'.join(ref_image[0].split('/')[-3:])][1]
+    R_init, t_init = torch.from_numpy(T_init[:3, :3]), torch.from_numpy(T_init[:3,3])
+    feature_grad_x, feature_grad_y = sobel_filter(feature_map_query)
+    K = torch.from_numpy(filename_to_intrinsics[ref_image[0]][0]).type(torch.DoubleTensor)
+
+    model = sparse3DBA(n_iters = 50, lambda_ = 0, verbose=True)
+    R, t = model(pts3D, feature_ref, feature_map_query, feature_grad_x, feature_grad_y, K, R_init, t_init)
+
+    result['R'] = R.numpy()
+    result['t'] = t.numpy()
+
+    

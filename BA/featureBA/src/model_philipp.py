@@ -131,8 +131,8 @@ class sparse3DBA(nn.Module):
 
         # regularization parameter
         lambda_ = self.lambda_ # lambda for LM method
-        lr = 0.1 # learning rate
-        lr_reset = 0.1 #reset learning rate
+        lr = 1. # learning rate
+        lr_reset = 1. #reset learning rate
             
 
         for i in range(self.iterations):
@@ -151,8 +151,9 @@ class sparse3DBA(nn.Module):
 
             # Feature error, NxC
             if self.verbose:
-                print("Supported mask: ",mask_supported)
-                print("All points: ", points_2d)
+                print("printing")
+                # print("Supported mask: ",mask_supported)
+                # print("All points: ", points_2d)
             error = indexing_(feature_map_query, torch.flip(points_2d_supported,(1,))) - feature_ref[mask_supported]
 
             # Cost of Feature error -> SSD
