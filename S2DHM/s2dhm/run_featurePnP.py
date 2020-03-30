@@ -99,4 +99,4 @@ if __name__ == '__main__':
     result['query_hypercolumn'] = query_hypercolumn
     result['reference_hypercolumn'] = reference_hypercolumn
 
-    pickle.dump(result, open(args.results + "prediction.p", 'wb'))
+    pickle.dump(result, open(args.result + "prediction.p", 'wb'))
