@@ -1,0 +1,8 @@
+(1) I switched off CUDA at two locations in pose_prediction/keypoint_association.py: line 57 and line 65 (Remember to turn it back on when using gpu!
+
+(2) In file pose_prediction/solve_pnp.py: I added 3D_points in "Prediction" named tuple at line 7. And to subsequent output formats in line 53,74,86
+
+(3) Added results folder
+
+(4) Added my own run_featurePnP.py, run_featurePnP.ipynb, datasets/dataload_helpers.py, pose_prediction/sparse_to_dense_featuremetric_predictor.py
+
