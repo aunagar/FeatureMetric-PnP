@@ -99,7 +99,10 @@ if __name__ == '__main__':
 
     result = dict()
     result['prediction'] = prediction
-    result['query_hypercolumn'] = query_hypercolumn
-    result['reference_hypercolumn'] = reference_hypercolumn
+    # result['query_hypercolumn'] = query_hypercolumn.numpy()
+    # result['reference_hypercolumn'] = reference_hypercolumn.numpy()
 
+    np.save(args.result + "query_hypercolumn", query_hypercolumn.numpy())
+    np.save(args.result + "reference_hypercolumn", reference_hypercolumn.numpy())
+    
     pickle.dump(result, open(args.result + "prediction.p", 'wb'))
