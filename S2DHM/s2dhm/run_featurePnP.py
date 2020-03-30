@@ -95,7 +95,7 @@ if __name__ == '__main__':
     reference_hypercolumn = interpolate(reference_hypercolumn, size = (1024,1024),
                                         mode='bilinear', align_corners = True)
     
-    print("iterpolated Hypercolumn size is {}".format(query_hypercolumn.shape()))
+    print("iterpolated Hypercolumn size is {}".format(query_hypercolumn.shape))
 
     result = dict()
     result['prediction'] = prediction
