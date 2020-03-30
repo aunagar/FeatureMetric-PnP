@@ -57,7 +57,7 @@ class SparseToDenseFeatureMetricPnP:
         query_dense_hypercolumn, _ = self._network.compute_hypercolumn(
             [query_image], to_cpu=False, resize=True)
         channels, width, height = query_dense_hypercolumn.shape[1:]
-        query_dense_hypercolumn = query_dense_hypercolumn.squeeze().view(
+        query_dense_hypercolumn_2 = query_dense_hypercolumn.squeeze().view(
             (channels, -1))
         predictions = []
 
@@ -69,7 +69,7 @@ class SparseToDenseFeatureMetricPnP:
 
         # Perform exhaustive search
         matches_2D, mask = exhaustive_search.exhaustive_search(
-            query_dense_hypercolumn,
+            query_dense_hypercolumn_2,
             reference_sparse_hypercolumns,
             Image.open(reference_image).size[::-1],
             [width, height],
