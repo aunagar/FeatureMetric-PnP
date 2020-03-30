@@ -87,7 +87,11 @@ if __name__ == '__main__':
     s2dPnP = SparseToDenseFeatureMetricPnP(filename_to_pose, filename_to_intrinsics,
             filename_to_local_reconstruction, net)
     prediction, query_hypercolumn, reference_hypercolumn = s2dPnP.run(query_images[0], ref_images[0])
-
+    
+    query_hypercolumn = interpolate(query_hypercolumn, size=(1024,1024),
+                                    mode = 'bilinear', align_corners=True)
+    reference_hypercolumn = interpolate(reference_hypercolumn, size = (1024,1024),
+                                        mode='bilinear', align_corners = True)
     result = dict()
     result['prediction'] = prediction
     result['query_hypercolumn'] = query_hypercolumn
