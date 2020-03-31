@@ -6,6 +6,7 @@ import argparse
 from torch.nn.functional import interpolate
 from PIL import Image
 import pickle
+import torch
 
 from network import network
 from image_retrieval import rank_images
@@ -121,10 +122,10 @@ if __name__ == '__main__':
     feature_ref = torch.cat([reference_hypercolumn.squeeze(0)[:, i, j].unsqueeze(0) for i, j in zip(ref2d[:,0],
                             ref2d[:,1])]).type(torch.DoubleTensor)
     feature_map_query = query_hypercolumn.squeeze(0).type(torch.DoubleTensor)
-    T_init = filename_to_pose['/'.join(ref_image[0].split('/')[-3:])][1]
+    T_init = filename_to_pose['/'.join(ref_images[0].split('/')[-3:])][1]
     R_init, t_init = torch.from_numpy(T_init[:3, :3]), torch.from_numpy(T_init[:3,3])
     feature_grad_x, feature_grad_y = sobel_filter(feature_map_query)
-    K = torch.from_numpy(filename_to_intrinsics[ref_image[0]][0]).type(torch.DoubleTensor)
+    K = torch.from_numpy(filename_to_intrinsics[ref_images[0]][0]).type(torch.DoubleTensor)
 
     model = sparse3DBA(n_iters = 50, lambda_ = 0, verbose=True)
     R, t = model(pts3D, feature_ref, feature_map_query, feature_grad_x, feature_grad_y, K, R_init, t_init)

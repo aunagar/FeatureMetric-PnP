@@ -8,3 +8,4 @@ BA/.vscode/settings.json
 *.p
 *.cpython-36.pyc
 *.cpython-37.pyc
+lsf*
