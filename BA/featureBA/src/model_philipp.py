@@ -10,13 +10,15 @@ import numpy as np
 
 """
 @ToDo:
-    - Check if this masking of supported points works as expected
+    - Check if this masking of supported points works as expected (done, seems to work good)
     - We project points 2 times, should decrease to once only (perf.)
     - Function returns the last R and t, which are not necessarily the best
     - Try to explain this spurious oscillations sometimes
     - Try to find a workaround for local minimas, e.g. perturb randomly around best guess
     - Penalize removing points with mask (should add to error)
     - Threshold far-off feature errors
+    - If the feature gradient is smaller than the image size, we take the closest one (see
+        keypoint_association.py) (done)
 """
 
 """
@@ -44,7 +46,7 @@ def optimizer_step(g, H, lambda_=0, lr = 1.):
     delta = -lr * (P @ g[..., None])[..., 0] # generally learning rate does not make sense for second order methods
     return delta
 
-def indexing_(feature_map, points):
+def indexing_(feature_map, points, width, height):
     '''
     Function gives x and y gradients for 3D points in camera frame.
 
@@ -52,13 +54,17 @@ def indexing_(feature_map, points):
     @feature_map : x gradient of the feature map (CxHxW)
     @points : pixel coordinates of points (Nx2)
 
+    @imsize: optional: tuple(height, width)
+
     outputs: 
     features : features for the points (NxC)
     '''
-    C,H,W = feature_map.shape
-    
+
+    points_row = (points[:,0].double() * feature_map.shape[-2] / height).floor().type(torch.ShortTensor) #Should be short
+    points_col =(points[:,1].double() * feature_map.shape[-1] / width).floor().type(torch.ShortTensor)
+
     features = []
-    for i,j in zip(points[:,0], points[:,1]):
+    for i,j in zip(points_row, points_col):
         features.append(feature_map[:, i, j].unsqueeze(0))
 
     features = torch.cat(features)
@@ -87,6 +93,10 @@ def points_within_image(points_2d, width, height, pad=0):
     return mask
 
 
+def threshold_feature_errors(feature_errors, mode="keep all"):
+    """PLACEHOLDER FOR THRESHOLD FUNC, returns a 1D mask"""
+    return 0
+
 class sparse3DBA(nn.Module):
     def __init__(self, n_iters, loss_fn = squared_loss, lambda_ = 0.01,
                 opt_depth=True, verbose=False):
@@ -107,7 +117,7 @@ class sparse3DBA(nn.Module):
         self.track_["mask"].append(mask)
 
     def forward(self, pts3D, feature_ref, feature_map_query,
-                feature_grad_x, feature_grad_y, K, R_init=None, t_init=None,
+                feature_grad_x, feature_grad_y, K, im_width, im_height, R_init=None, t_init=None,
                 confidence=None, scale=None, track = False, log = True):
         '''
         inputs:
@@ -131,8 +141,8 @@ class sparse3DBA(nn.Module):
 
         # regularization parameter
         lambda_ = self.lambda_ # lambda for LM method
-        lr = 1. # learning rate
-        lr_reset = 1. #reset learning rate
+        lr = 0.1 # learning rate
+        lr_reset = 0.1 #reset learning rate
             
 
         for i in range(self.iterations):
@@ -142,8 +152,7 @@ class sparse3DBA(nn.Module):
             points_2d = torch.round(from_homogeneous(torch.mm(K, points_3d.T).T)).type(torch.IntTensor)-1
 
             # Get the points that are supported within our image size
-            layers, height, width  = feature_map_query.shape
-            mask_supported = points_within_image(points_2d,height, width)
+            mask_supported = points_within_image(points_2d,im_width, im_height)
 
             # We only take supported points
             points_2d_supported = points_2d[mask_supported,:]
@@ -154,7 +163,7 @@ class sparse3DBA(nn.Module):
                 print("printing")
                 # print("Supported mask: ",mask_supported)
                 # print("All points: ", points_2d)
-            error = indexing_(feature_map_query, torch.flip(points_2d_supported,(1,))) - feature_ref[mask_supported]
+            error = indexing_(feature_map_query, torch.flip(points_2d_supported,(1,)), im_width, im_height) - feature_ref[mask_supported]
 
             # Cost of Feature error -> SSD
             cost = 0.5*(error**2).sum(-1)
@@ -192,8 +201,8 @@ class sparse3DBA(nn.Module):
             ], dim=-1).reshape(shape+(2, 3)) / points_3d_supported[..., 2, None, None]
 
             # feature gradient at projected pixel coordinates
-            grad_x_points = indexing_(feature_grad_x, torch.flip(points_2d_supported,(1,)))
-            grad_y_points = indexing_(feature_grad_y, torch.flip(points_2d_supported,(1,)))
+            grad_x_points = indexing_(feature_grad_x, torch.flip(points_2d_supported,(1,)), im_width, im_height)
+            grad_y_points = indexing_(feature_grad_y, torch.flip(points_2d_supported,(1,)), im_width, im_height)
 
             # gradient of features with respect to pixel points
             J_f_px = torch.cat((grad_x_points[..., None], grad_y_points[...,None]), -1)
@@ -236,15 +245,14 @@ class sparse3DBA(nn.Module):
             new_points_2d = torch.round(from_homogeneous(torch.mm(K, new_points_3d.T).T)).type(torch.IntTensor) - 1
             
             # Get mask for new points
-            layers, height, width  = feature_map_query.shape
-            mask_supported = points_within_image(new_points_2d,height, width)
+            mask_supported = points_within_image(new_points_2d, im_width, im_height)
 
             # Mask new points
             new_points_2d_supported = new_points_2d[mask_supported,:]
             new_points_3d_supported = new_points_3d[mask_supported,:]
 
             # Check new error
-            new_error = indexing_(feature_map_query, torch.flip(new_points_2d_supported, (1,))) - feature_ref[mask_supported]
+            new_error = indexing_(feature_map_query, torch.flip(new_points_2d_supported, (1,)), im_width, im_height) - feature_ref[mask_supported]
             new_cost = 0.5*(new_error**2).sum(-1)
 
             new_cost = new_cost.mean(-1)
