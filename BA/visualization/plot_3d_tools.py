@@ -20,11 +20,11 @@ def fig2data (fig):
  
     # Get the RGB buffer from the figure
     w,h = fig.canvas.get_width_height()
-    buf = np.fromstring(fig.canvas.tostring_rgb(), dtype=np.uint8 )
-    buf.shape = (w,h,3)
+    buf = np.fromstring(fig.canvas.tostring_rgb(), dtype=np.uint8)
+    buf.shape = (h,w,3)
  
     # canvas.tostring_argb give pixmap in RGB mode.
-    buf = np.roll( buf, 3, axis = 2 )
+    buf = np.roll( buf, 2, axis = 2 )
     return buf
 
 class Arrow3D(FancyArrowPatch):
@@ -73,21 +73,18 @@ def plot_coordinate_system(ax1,center=(0,0,0),size=(1,1,1)):
     # Here we create the arrows:
     arrow_prop_dict = dict(mutation_scale=20, arrowstyle='->', shrinkA=0, shrinkB=0)
 
-    a = Arrow3D([0, 1], [0, 0], [0, 0], **arrow_prop_dict, color='r')
+    a = Arrow3D([0, size[0]], [0, 0], [0, 0], **arrow_prop_dict, color='r')
     ax1.add_artist(a)
-    a = Arrow3D([0, 0], [0, 1], [0, 0], **arrow_prop_dict, color='b')
+    a = Arrow3D([0, 0], [0, size[1]], [0, 0], **arrow_prop_dict, color='b')
     ax1.add_artist(a)
-    a = Arrow3D([0, 0], [0, 0], [0, 1], **arrow_prop_dict, color='g')
+    a = Arrow3D([0, 0], [0, 0], [0, size[2]], **arrow_prop_dict, color='g')
     ax1.add_artist(a)
 
     # Give them a name:
     ax1.text(0.0, 0.0, -0.1, r'$0$')
-    ax1.text(1.1, 0, 0, r'$x$')
-    ax1.text(0, 1.1, 0, r'$y$')
-    ax1.text(0, 0, 1.1, r'$z$')
-
-fig = plt.figure()
-ax = fig.add_subplot(111, projection='3d')
+    ax1.text(1.1*size[0], 0, 0, r'$x$')
+    ax1.text(0, 1.1*size[1], 0, r'$y$')
+    ax1.text(0, 0, 1.1*size[2], r'$z$')
 
 # vertices of a pyramid
 
