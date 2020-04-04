@@ -100,6 +100,7 @@ if __name__ == '__main__':
             filename_to_local_reconstruction, net)
     prediction, query_hypercolumn, reference_hypercolumn = s2dPnP.run(query_images[0], ref_images[0])
     
+    del filename_to_local_reconstruction
     # query_hypercolumn = interpolate(query_hypercolumn, size=(1024,1024),
     #                                 mode = 'bilinear', align_corners=True)
     # reference_hypercolumn = interpolate(reference_hypercolumn, size = (1024,1024),
@@ -122,7 +123,7 @@ if __name__ == '__main__':
     feature_ref = torch.cat([reference_hypercolumn.squeeze(0)[:, i, j].unsqueeze(0) for i, j in zip(ref2d[:,0],
                             ref2d[:,1])]).type(torch.DoubleTensor)
     feature_map_query = query_hypercolumn.squeeze(0).type(torch.DoubleTensor)
-    T_init = filename_to_pose['/'.join(ref_images[0].split('/')[-3:])][1]
+    T_init = filename_to_pose['/'.join(query_image[0].split('/')[-3:])][1]
     R_init, t_init = torch.from_numpy(T_init[:3, :3]), torch.from_numpy(T_init[:3,3])
     feature_grad_x, feature_grad_y = sobel_filter(feature_map_query)
     K = torch.from_numpy(filename_to_intrinsics[ref_images[0]][0]).type(torch.DoubleTensor)
@@ -132,5 +133,7 @@ if __name__ == '__main__':
 
     result['R'] = R.numpy()
     result['t'] = t.numpy()
+
+    del filename_to_pose, filename_to_intrinsics, query_hypercolumn, reference_hypercolumn
 
     
