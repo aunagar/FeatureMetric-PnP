@@ -128,7 +128,7 @@ if __name__ == '__main__':
     K = torch.from_numpy(filename_to_intrinsics[ref_images[0]][0]).type(torch.DoubleTensor)
 
     model = sparse3DBA(n_iters = 50, lambda_ = 0, verbose=True)
-    R, t = model(pts3D, feature_ref, feature_map_query, feature_grad_x, feature_grad_y, K, R_init, t_init)
+    R, t = model(pts3D, feature_ref, feature_map_query, feature_grad_x, feature_grad_y, K, 1024, 1024,R_init, t_init)
 
     result['R'] = R.numpy()
     result['t'] = t.numpy()
