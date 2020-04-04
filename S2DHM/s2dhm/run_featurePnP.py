@@ -124,7 +124,7 @@ if __name__ == '__main__':
     q_img = cv2.imread(query_images[0])
     r_img = cv2.imread(ref_images[0])
 
-    for i, p in enumerate(prediction.reference_inliers):
+    for i, p in enumerate(prediction.reference_inliers.astype(int)):
         print(i, p)
         cv2.circle(r_img, tuple(p), 1, (128, 128, 0), -1)
 
