@@ -7,6 +7,7 @@ from torch.nn.functional import interpolate
 from PIL import Image
 import pickle
 import torch
+import cv2
 
 from network import network
 from image_retrieval import rank_images
@@ -117,6 +118,17 @@ if __name__ == '__main__':
     # np.save(args.result + "reference_hypercolumn", reference_hypercolumn.numpy())
     
     pickle.dump(result, open(args.result + "prediction.p", 'wb'))
+
+
+    ### For plotting
+    q_img = cv2.imread(query_images[0])
+    r_img = cv2.imread(ref_images[0])
+
+    for i, p in enumerate(prediction.reference_inliers):
+        print(i, p)
+        cv2.circle(r_img, tuple(p), 1, (128, 128, 0), -1)
+
+    cv2.imwrite(args.result + 'reference_detection.png', r_img)
 
     pts3D = torch.from_numpy(prediction.points_3d.reshape(-1,3))
     ref2d = torch.flip(torch.from_numpy((1/8*prediction.reference_inliers).astype(int)),(1,))
