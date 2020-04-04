@@ -100,10 +100,10 @@ if __name__ == '__main__':
             filename_to_local_reconstruction, net)
     prediction, query_hypercolumn, reference_hypercolumn = s2dPnP.run(query_images[0], ref_images[0])
     
-    query_hypercolumn = interpolate(query_hypercolumn, size=(1024,1024),
-                                    mode = 'bilinear', align_corners=True)
-    reference_hypercolumn = interpolate(reference_hypercolumn, size = (1024,1024),
-                                        mode='bilinear', align_corners = True)
+    # query_hypercolumn = interpolate(query_hypercolumn, size=(1024,1024),
+    #                                 mode = 'bilinear', align_corners=True)
+    # reference_hypercolumn = interpolate(reference_hypercolumn, size = (1024,1024),
+    #                                     mode='bilinear', align_corners = True)
     
     print("iterpolated Hypercolumn size is {}".format(query_hypercolumn.shape))
 
