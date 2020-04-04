@@ -130,6 +130,12 @@ if __name__ == '__main__':
 
     cv2.imwrite(args.result + 'reference_detection.png', r_img)
 
+    for i, p in enumerate(prediction.query_inliers.astype(int)):
+        print(i, p)
+        cv2.circle(q_img, tuple(p), 1, (128, 128, 0), -1)
+
+    cv2.imwrite(args.result + 'query_detection.png', q_img)
+
     pts3D = torch.from_numpy(prediction.points_3d.reshape(-1,3))
     ref2d = torch.flip(torch.from_numpy((1/8*prediction.reference_inliers).astype(int)),(1,))
     feature_ref = torch.cat([reference_hypercolumn.squeeze(0)[:, i, j].unsqueeze(0) for i, j in zip(ref2d[:,0],
