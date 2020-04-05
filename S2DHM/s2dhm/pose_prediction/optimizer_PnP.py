@@ -16,7 +16,7 @@ def optimize(query_hypercolumns, net, prediction, K, image_shape):
 
     reference_hypercolumns, image_shape = net.compute_hypercolumn( [prediction.reference_filename], to_cpu=False, resize=True )
     print(image_shape)
-    relative_shape = np.array([(image_shape[0]/reference_hypercolumns.shape[2]).astype(float), (image_shape[1]/reference_hypercolumns.shape[3]).astype(float)])
+    relative_shape = np.array([image_shape[0]/reference_hypercolumns.shape[2], image_shape[1]/reference_hypercolumns.shape[3]])
 
     pts3D = torch.from_numpy( prediction.points_3d.reshape(-1,3) )
     ref2d = torch.dot( relative_shape, prediction.reference_inliers.T ).T
