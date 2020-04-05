@@ -130,21 +130,35 @@ if __name__ == '__main__':
 
     cv2.imwrite(args.result + 'reference_detection.png', r_img)
 
-    for i, p in enumerate(prediction.query_inliers.astype(int)):
-        print(i, p)
-        cv2.circle(q_img, tuple(p), 1, (128, 128, 0), -1)
+    # for i, p in enumerate(prediction.query_inliers.astype(int)):
+    #     print(i, p)
+    #     cv2.circle(q_img, tuple(p), 1, (128, 128, 0), -1)
 
-    cv2.imwrite(args.result + 'query_detection.png', q_img)
+    # cv2.imwrite(args.result + 'query_detection.png', q_img)
 
     pts3D = torch.from_numpy(prediction.points_3d.reshape(-1,3))
-    ref2d = torch.flip(torch.from_numpy((1/8*prediction.reference_inliers).astype(int)),(1,))
+    ref2d = torch.flip(torch.from_numpy(1/8*prediction.reference_inliers).astype(int),(1,))
     feature_ref = torch.cat([reference_hypercolumn.squeeze(0)[:, i, j].unsqueeze(0) for i, j in zip(ref2d[:,0],
                             ref2d[:,1])]).type(torch.DoubleTensor)
     feature_map_query = query_hypercolumn.squeeze(0).type(torch.DoubleTensor)
-    T_init = filename_to_pose['/'.join(query_images[0].split('/')[-3:])][1]
+    T_init = filename_to_pose['/'.join(ref_images[0].split('/')[-3:])][1]
     R_init, t_init = torch.from_numpy(T_init[:3, :3]), torch.from_numpy(T_init[:3,3])
     feature_grad_x, feature_grad_y = sobel_filter(feature_map_query)
     K = torch.from_numpy(filename_to_intrinsics[ref_images[0]][0]).type(torch.DoubleTensor)
+
+    # inital projection and plotting
+    proj2d = torch.mm(R_init, pts3D.T).T + t_init
+    proj2d = torch.mm(K, proj2d.T).T
+    proj2d = proj2d/proj2d[:,-1,None]
+    proj2d = torch.round(proj2d[:,:2]).type(torch.IntTensor)-1
+
+    for i, p in enumerate(proj2d):
+        print(i, p)
+        cv2.circle(q_img, tuple(p), 1, (128, 128, 0), -1)
+
+    cv2.imwrite(args.result + 'query_initialization.png', q_img)
+
+
 
     model = sparse3DBA(n_iters = 50, lambda_ = 0, verbose=True)
     R, t = model(pts3D, feature_ref, feature_map_query, feature_grad_x, feature_grad_y, K, 1024, 1024,R_init, t_init)

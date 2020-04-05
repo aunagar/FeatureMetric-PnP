@@ -99,6 +99,7 @@ def load_triangulation_data(triangulation_file, filenames):
             filename_to_local_reconstruction[filename] = \
                 reconstruction_data(intrinsics, distortion_coefficients,
                     points_2D, points_3D)
+    del triangulation_data
     return filename_to_local_reconstruction
 
 def load_intrinsics(filenames):
