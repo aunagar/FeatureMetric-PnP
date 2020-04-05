@@ -22,7 +22,7 @@ from datasets import dataload_helpers as data_helpers
 sys.path.insert(0, os.path.abspath('../../'))
 
 
-from BA.featureBA.src.model_philipp import sparse3DBA
+from BA.featureBA.src.model import sparse3DBA
 from BA.featureBA.src.utils import sobel_filter
 
 
@@ -147,8 +147,11 @@ if __name__ == '__main__':
     feature_grad_x, feature_grad_y = sobel_filter(feature_map_query)
     K = torch.from_numpy(filename_to_intrinsics[ref_images[0]][0]).type(torch.DoubleTensor)
 
-    print("3D points shape is {}".format(pts3D.size))
-    print("reference features shape is {}".format(feature_ref.size))
+    print("3D points shape is {}".format(pts3D.size()))
+    print("reference features shape is {}".format(feature_ref.size()))
+    print("query feature map is of size {}".format(feature_map_query.size()))
+    print("Projection matrix is of shape {}".format(T_init.size()))
+    print("feature gradient is of shape {}".format(feature_grad_x.size()))
     # inital projection and plotting
     proj2d = torch.mm(R_init, pts3D.T).T + t_init
     proj2d = torch.mm(K, proj2d.T).T
