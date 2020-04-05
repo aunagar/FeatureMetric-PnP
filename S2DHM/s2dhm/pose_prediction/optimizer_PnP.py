@@ -1,5 +1,6 @@
 import os, sys
-import numpy, torch
+import numpy as np
+import torch
 import gin
 from pose_prediction import matrix_utils
 
