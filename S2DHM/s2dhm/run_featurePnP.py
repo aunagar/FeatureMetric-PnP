@@ -166,7 +166,7 @@ if __name__ == '__main__':
 
 
 
-    model = sparse3DBA(n_iters = 50, lambda_ = 0, verbose=True)
+    model = sparse3DBA(n_iters = 5000, lambda_ = 0.1, verbose=True)
     R, t = model(pts3D, feature_ref, feature_map_query, feature_grad_x, feature_grad_y, K, 1024, 1024,R_init, t_init)
 
     result['R'] = R.numpy()
