@@ -172,6 +172,19 @@ if __name__ == '__main__':
     result['t'] = t.numpy()
     pickle.dump(result, open(args.result + "prediction.p", 'wb'))
 
+    # final projection and plotting
+    q_img = cv2.imread(query_images[0])
+    proj2d = torch.mm(R, pts3D.T).T + t
+    proj2d = torch.mm(K, proj2d.T).T
+    proj2d = proj2d/proj2d[:,-1,None]
+    proj2d = torch.round(proj2d[:,:2]).type(torch.IntTensor)-1
+
+    for i, p in enumerate(proj2d):
+        # print(i, p)
+        cv2.circle(q_img, tuple(p), 1, (128, 128, 0), -1)
+
+    cv2.imwrite(args.result + 'query_final.png', q_img)
+
     del filename_to_pose, filename_to_intrinsics, query_hypercolumn, reference_hypercolumn
 
     
