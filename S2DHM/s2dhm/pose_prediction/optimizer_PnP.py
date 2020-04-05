@@ -14,7 +14,8 @@ from BA.featureBA.src.utils import sobel_filter
 @gin.configurable
 def optimize(query_hypercolumns, net, prediction, K, image_shape):
 
-    reference_hypercolumns = net.compute_hypercolumn( [prediction.reference_filename], to_cpu=False, resize=True )
+    reference_hypercolumns, image_shape = net.compute_hypercolumn( [prediction.reference_filename], to_cpu=False, resize=True )
+    print(image_shape)
     relative_shape = np.array([(image_shape[0]/reference_hypercolumns.shape[2]).astype(float), (image_shape[1]/reference_hypercolumns.shape[3]).astype(float)])
 
     pts3D = torch.from_numpy( prediction.points_3d.reshape(-1,3) )
