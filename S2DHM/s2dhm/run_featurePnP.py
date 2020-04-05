@@ -137,7 +137,7 @@ if __name__ == '__main__':
     # cv2.imwrite(args.result + 'query_detection.png', q_img)
 
     pts3D = torch.from_numpy(prediction.points_3d.reshape(-1,3))
-    ref2d = torch.flip(torch.from_numpy(1/8*prediction.reference_inliers).astype(int),(1,))
+    ref2d = torch.flip(torch.from_numpy((1/8*prediction.reference_inliers).astype(int)),(1,))
     feature_ref = torch.cat([reference_hypercolumn.squeeze(0)[:, i, j].unsqueeze(0) for i, j in zip(ref2d[:,0],
                             ref2d[:,1])]).type(torch.DoubleTensor)
     feature_map_query = query_hypercolumn.squeeze(0).type(torch.DoubleTensor)
