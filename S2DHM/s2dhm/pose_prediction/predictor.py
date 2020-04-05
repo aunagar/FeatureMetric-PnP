@@ -52,6 +52,7 @@ class PosePredictor():
                 num_inliers=-1,
                 reference_inliers=None,
                 query_inliers=None,
+                points_3d = None,
                 quaternion=quaternion,
                 matrix=matrix,
                 reference_filename=nearest_neighbor,

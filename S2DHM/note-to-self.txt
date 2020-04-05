@@ -10,3 +10,5 @@
 
 (6) Added import of OptimizerPnP (line 14) and calling optimizer in (line 120-123) in pose_prediction/sparse_to_dense_predictor.py
 
+(7) Added "points_3d" in the output of _nearest_neighbor_prediction function (line 55) of pose_prediction/predictor.py
+
