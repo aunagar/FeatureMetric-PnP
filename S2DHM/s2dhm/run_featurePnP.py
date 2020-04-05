@@ -72,8 +72,8 @@ if __name__ == '__main__':
     image_root = DATA_PATH + 'images/'
 
     # if no file is provided in args, we will use our own!
-    ref_image = 'overcast-reference/rear/1417176458999821.jpg'
-    query_image = 'overcast-reference/rear/1417176511810439.jpg'
+    ref_image = 'overcast-reference/rear/1417176495903575.jpg'
+    query_image = 'overcast-reference/rear/1417176509083576.jpg'
 
     if args.ref_image:
         ref_images = [image_root + args.ref_image]
@@ -117,7 +117,6 @@ if __name__ == '__main__':
     # np.save(args.result + "query_hypercolumn", query_hypercolumn.numpy())
     # np.save(args.result + "reference_hypercolumn", reference_hypercolumn.numpy())
     
-    pickle.dump(result, open(args.result + "prediction.p", 'wb'))
 
 
     ### For plotting
@@ -171,6 +170,7 @@ if __name__ == '__main__':
 
     result['R'] = R.numpy()
     result['t'] = t.numpy()
+    pickle.dump(result, open(args.result + "prediction.p", 'wb'))
 
     del filename_to_pose, filename_to_intrinsics, query_hypercolumn, reference_hypercolumn
 
