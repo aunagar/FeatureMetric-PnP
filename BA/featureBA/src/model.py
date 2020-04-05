@@ -141,8 +141,8 @@ class sparse3DBA(nn.Module):
 
         # regularization parameter
         lambda_ = self.lambda_ # lambda for LM method
-        lr = 0.1 # learning rate
-        lr_reset = 0.1 #reset learning rate
+        lr = 1.0 # learning rate
+        lr_reset = 1.0 #reset learning rate
             
 
         for i in range(self.iterations):
