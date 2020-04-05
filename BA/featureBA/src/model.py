@@ -186,7 +186,7 @@ class sparse3DBA(nn.Module):
             #  [0,0,1,-py,px,0]] 
             J_p_T = torch.cat([
                 batched_eye_like(points_3d_supported, 3), -skew_symmetric(points_3d_supported)], -1)
-            print("J_p_T is  ", J_p_T)
+            # print("J_p_T is  ", J_p_T)
 
 
             # Gradient of pixel point px with respect to 3D point P
@@ -200,7 +200,7 @@ class sparse3DBA(nn.Module):
                 z, K[1,1]*o, -K[1,1]*points_3d_supported[..., 1] / points_3d_supported[..., 2],
             ], dim=-1).reshape(shape+(2, 3)) / points_3d_supported[..., 2, None, None]
 
-            print("J_px_p is ", J_px_p)
+            # print("J_px_p is ", J_px_p)
             # feature gradient at projected pixel coordinates
             grad_x_points = indexing_(feature_grad_x, torch.flip(points_2d_supported,(1,)), im_width, im_height)
             grad_y_points = indexing_(feature_grad_y, torch.flip(points_2d_supported,(1,)), im_width, im_height)
@@ -208,7 +208,7 @@ class sparse3DBA(nn.Module):
             # gradient of features with respect to pixel points
             J_f_px = torch.cat((grad_x_points[..., None], grad_y_points[...,None]), -1)
 
-            print("J_f_px is ", J_f_px)
+            # print("J_f_px is ", J_f_px)
             # gradient of feature error w.r.t. camera matrix T (including K)
             J_e_T = J_f_px @ J_px_p @ J_p_T
 
