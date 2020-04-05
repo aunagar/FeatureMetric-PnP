@@ -150,7 +150,7 @@ if __name__ == '__main__':
     print("3D points shape is {}".format(pts3D.size()))
     print("reference features shape is {}".format(feature_ref.size()))
     print("query feature map is of size {}".format(feature_map_query.size()))
-    print("Projection matrix is of shape {}".format(T_init.size()))
+    print("Rotation matrix is of shape {} and translation".format(R_init.size(), t_init.size()))
     print("feature gradient is of shape {}".format(feature_grad_x.size()))
     # inital projection and plotting
     proj2d = torch.mm(R_init, pts3D.T).T + t_init
