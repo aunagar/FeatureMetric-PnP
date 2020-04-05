@@ -11,6 +11,8 @@ from pose_prediction import keypoint_association
 from pose_prediction import exhaustive_search
 from visualization import plot_correspondences
 
+from optimizer_PnP import optimize
+
 
 @gin.configurable
 class SparseToDensePredictor(predictor.PosePredictor):
@@ -115,6 +117,10 @@ class SparseToDensePredictor(predictor.PosePredictor):
             if len(predictions):
                 export, best_prediction = self._choose_best_prediction(
                     predictions, query_image)
+                matrix, quaterion = optimize(query_hypercolumns.view(channels, width, height)[None, ...],
+                                    self._network, best_prediction, intrinsics)
+                export[1], export[2] = quaterion, matrix
+
                 if self._log_images:
                     if np.ndim(np.squeeze(best_prediction.query_inliers)):
                         self._plot_inliers(

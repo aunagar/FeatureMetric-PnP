@@ -54,18 +54,22 @@ def fast_sparse_keypoint_descriptor(keypoints, dense_keypoints,
     dense_descriptors = dense_descriptors.view(batch_size, channels, -1)
 
     # Sparse hypercolumn descriptors associated with the sparse keypoints
-    # sparse_descriptors = [torch.zeros(
-    #     (x.shape[1], channels)).cuda() for x in keypoints]
-    sparse_descriptors = [torch.zeros(
-        (x.shape[1], channels)) for x in keypoints]
+    if torch.cuda.is_available():
+        sparse_descriptors = [torch.zeros(
+            (x.shape[1], channels)).cuda() for x in keypoints]
+    else:
+        sparse_descriptors = [torch.zeros(
+            (x.shape[1], channels)) for x in keypoints]
 
     # Associate each detected keypoint with the nearest dense descriptor
     for i, kp in enumerate(keypoints):
         # Find closest points between detected keypoints and dense keypoints
-        # argmins = fast_closest_points(
-        #     torch.from_numpy(kp[:2,:]).cuda(), dense_keypoints)
-        argmins = fast_closest_points(
-            torch.from_numpy(kp[:2,:]), dense_keypoints)
+        if torch.cuda.is_available():
+            argmins = fast_closest_points(
+                torch.from_numpy(kp[:2,:]).cuda(), dense_keypoints)
+        else:
+            argmins = fast_closest_points(
+                torch.from_numpy(kp[:2,:]), dense_keypoints)
         for j in range(kp.shape[1]):
             sparse_descriptors[i][j, :] = dense_descriptors[i, :, argmins[j]]
     return sparse_descriptors
