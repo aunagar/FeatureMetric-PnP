@@ -76,12 +76,18 @@ if __name__ == '__main__':
                 'overcast-reference/rear/1417176586163507.jpg',
                 'overcast-reference/rear/1417176991015329.jpg',
                 'overcast-reference/rear/1417177488763211.jpg',
-                'overcast-reference/rear/1417177952697851.jpg']
+                'overcast-reference/rear/1417177952697851.jpg',
+                'overcast-reference/rear/1417177961605723.jpg',
+                'overcast-reference/rear/1417177976512750.jpg',
+                'overcast-reference/rear/1417177990238067.jpg']
     query_images = ['overcast-reference/rear/1417176509083576.jpg',
                 'overcast-reference/rear/1417176586345356.jpg',
                 'overcast-reference/rear/1417176991197053.jpg',
                 'overcast-reference/rear/1417177489035919.jpg',
-                'overcast-reference/rear/1417177952879702.jpg']
+                'overcast-reference/rear/1417177952879702.jpg',
+                'overcast-reference/rear/1417177961787572.jpg',
+                'overcast-reference/rear/1417177976603612.jpg',
+                'overcast-reference/rear/1417177990601642.jpg']
 
 
     if args.ref_image:
@@ -136,13 +142,13 @@ if __name__ == '__main__':
 
         for i, p in enumerate(prediction.reference_inliers.astype(int)):
             # print(i, p)
-            cv2.circle(r_img, tuple(p), 1, (128, 128, 0), 5)
+            cv2.circle(r_img, tuple(p), 1, (128, 128, 0), 3)
 
         cv2.imwrite(args.result + 'ref_'+ str(k) + '_detection.png', r_img)
 
         for i, p in enumerate(prediction.query_inliers.astype(int)):
             print(i, p)
-            cv2.circle(q_img, tuple(p), 1, (128, 128, 0), 5)
+            cv2.circle(q_img, tuple(p), 1, (128, 128, 0), 3)
 
         cv2.imwrite(args.result + 'query_'+ str(k) + '_detection.png', q_img)
 
@@ -193,7 +199,7 @@ if __name__ == '__main__':
 
         for i, p in enumerate(proj2d):
             # print(i, p)
-            cv2.circle(q_img, tuple(p), 1, (128, 128, 0), -1)
+            cv2.circle(q_img, tuple(p), 1, (128, 128, 0), 3)
 
         cv2.imwrite(args.result + 'query_' + str(k) + '_final.png', q_img)
 
