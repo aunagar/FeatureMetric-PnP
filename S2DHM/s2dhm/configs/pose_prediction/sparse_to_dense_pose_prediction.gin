@@ -15,4 +15,4 @@ solve_pnp.minimum_matches = 5
 exhaustive_search.factor = 0.006
 
 # Optimizer parameters
-image_shape = [1024, 1024]
+optimize.image_shape = [1024, 1024]
