@@ -125,7 +125,7 @@ if __name__ == '__main__':
     r_img = cv2.imread(ref_images[0])
 
     for i, p in enumerate(prediction.reference_inliers.astype(int)):
-        print(i, p)
+        # print(i, p)
         cv2.circle(r_img, tuple(p), 1, (128, 128, 0), -1)
 
     cv2.imwrite(args.result + 'reference_detection.png', r_img)
@@ -141,11 +141,14 @@ if __name__ == '__main__':
     feature_ref = torch.cat([reference_hypercolumn.squeeze(0)[:, i, j].unsqueeze(0) for i, j in zip(ref2d[:,0],
                             ref2d[:,1])]).type(torch.DoubleTensor)
     feature_map_query = query_hypercolumn.squeeze(0).type(torch.DoubleTensor)
-    T_init = filename_to_pose['/'.join(ref_images[0].split('/')[-3:])][1]
+    # T_init = filename_to_pose['/'.join(ref_images[0].split('/')[-3:])][1]
+    T_init = prediction.matrix
     R_init, t_init = torch.from_numpy(T_init[:3, :3]), torch.from_numpy(T_init[:3,3])
     feature_grad_x, feature_grad_y = sobel_filter(feature_map_query)
     K = torch.from_numpy(filename_to_intrinsics[ref_images[0]][0]).type(torch.DoubleTensor)
 
+    print("3D points shape is {}".format(pts3D.size))
+    print("reference features shape is {}".format(feature_ref.size))
     # inital projection and plotting
     proj2d = torch.mm(R_init, pts3D.T).T + t_init
     proj2d = torch.mm(K, proj2d.T).T
@@ -153,7 +156,7 @@ if __name__ == '__main__':
     proj2d = torch.round(proj2d[:,:2]).type(torch.IntTensor)-1
 
     for i, p in enumerate(proj2d):
-        print(i, p)
+        # print(i, p)
         cv2.circle(q_img, tuple(p), 1, (128, 128, 0), -1)
 
     cv2.imwrite(args.result + 'query_initialization.png', q_img)
