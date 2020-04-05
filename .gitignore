@@ -7,7 +7,8 @@ Untitled1.ipynb
 .ipynb_checkpoints/Untitled1-checkpoint.ipynb
 BA/.vscode/settings.json
 *.p
-*.cpython-36.pyc
-*.cpython-37.pyc
+*.pyc
 lsf*
 BA/feature_BA.pdf
+S2DHM/data/
+S2DHM/s2dhm/output.txt
