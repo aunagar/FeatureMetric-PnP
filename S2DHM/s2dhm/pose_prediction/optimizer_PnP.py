@@ -19,7 +19,7 @@ def optimize(query_hypercolumns, net, prediction, K, image_shape):
 
     pts3D = torch.from_numpy( prediction.points_3d.reshape(-1,3) ) 
     ref2d = torch.from_numpy(relative_shape).view(1,2) * torch.from_numpy(prediction.reference_inliers)
-    print( ref2D.size() )
+    print( ref2d.size() )
     ref2d = torch.flip( ref2d.type(torch.IntTensor), (1,) )
 
     feature_ref = torch.cat([reference_hypercolumn.squeeze(0)[:, i, j].unsqueeze(0) for i, j in zip(ref2d[:,0], ref2d[:,1])]).type(torch.DoubleTensor)
