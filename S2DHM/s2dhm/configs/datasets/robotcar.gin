@@ -7,6 +7,6 @@ RobotCarDataset.name = 'robotcar'
 RobotCarDataset.root = %ROBOTCAR_ROOT
 RobotCarDataset.image_folder = 'images/'
 RobotCarDataset.reference_sequences = ['overcast-reference']
-RobotCarDataset.query_sequences = ['dawn']
+RobotCarDataset.query_sequences = ['dawn', 'dusk', 'night', 'night-rain', 'overcast-summer', 'overcast-winter', 'rain', 'snow', 'sun']
 RobotCarDataset.nvm_model = '/nfs/nas12.ethz.ch/fs1201/infk_ivc_students/252-0579-00L/ntselepidis/S2DHM_datasets/RobotCar-Seasons/3D-models/all-merged/all.nvm'
 RobotCarDataset.triangulation_data_file = '../data/triangulation/robotcar_triangulation.npz'
