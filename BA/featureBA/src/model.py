@@ -159,7 +159,7 @@ class sparse3DBA(nn.Module):
             points_3d_supported = points_3d[mask_supported,:]
 
             # Feature error, NxC
-            if self.verbose:
+            # if self.verbose:
                 # print("printing")
                 # print("Supported mask: ",mask_supported)
                 # print("All points: ", points_2d)
@@ -234,7 +234,7 @@ class sparse3DBA(nn.Module):
 
             # Rotational delta as a skew symmetric matrix -> SO3
             dr = so3exp_map(dw)
-            if self.verbose:
+            # if self.verbose:
                 # print("dr is : ", dw)
                 # print("dt is : ", dt)
 
