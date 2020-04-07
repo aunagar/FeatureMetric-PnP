@@ -142,9 +142,9 @@ class ImageRetrievalModel():
 
             # Final descriptor size (concat. intermediate features)
             final_descriptor_size = sum([x.shape[1] for x in feature_maps])
-            print("Hypercolumn size is {}".format(final_descriptor_size))
+            # print("Hypercolumn size is {}".format(final_descriptor_size))
             b, c, w, h = feature_maps[0].shape
-            print("Hypercolumn resolution is {} x {}".format(w, h))
+            # print("Hypercolumn resolution is {} x {}".format(w, h))
             hypercolumn = torch.zeros(
                 b, final_descriptor_size, w, h).to(self._device)
 

@@ -160,7 +160,7 @@ class sparse3DBA(nn.Module):
 
             # Feature error, NxC
             if self.verbose:
-                print("printing")
+                # print("printing")
                 # print("Supported mask: ",mask_supported)
                 # print("All points: ", points_2d)
             error = indexing_(feature_map_query, torch.flip(points_2d_supported,(1,)), im_width, im_height) - feature_ref[mask_supported]
@@ -235,8 +235,8 @@ class sparse3DBA(nn.Module):
             # Rotational delta as a skew symmetric matrix -> SO3
             dr = so3exp_map(dw)
             if self.verbose:
-                print("dr is : ", dw)
-                print("dt is : ", dt)
+                # print("dr is : ", dw)
+                # print("dt is : ", dt)
 
             # Update Rotation and translation of camera
             R_new = dr @ R 
