@@ -117,7 +117,7 @@ class SparseToDensePredictor(predictor.PosePredictor):
             if len(predictions):
                 export, best_prediction = self._choose_best_prediction(
                     predictions, query_image)
-                output.append(export)
+                output.append(export.copy())
                 if best_prediction.success:
                     print("running optimization for query = {} and reference = {}".format(query_image,
                                                                     best_prediction.reference_filename) )
