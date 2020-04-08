@@ -38,4 +38,5 @@ def optimize(query_hypercolumns, net, prediction, K, image_shape):
     T[:3, :3], T[3,:3] = R.numpy(), t.numpy()
 
     quaternion = matrix_utils.matrix_quaternion(T)
-    return list(t), list(quaternion)
+    print("Final : {}".format(list(quaternion) + list(t.numpy())))
+    return list(t.numpy()), list(quaternion)
