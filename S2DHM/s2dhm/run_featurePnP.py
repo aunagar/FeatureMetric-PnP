@@ -157,8 +157,8 @@ if __name__ == '__main__':
         feature_ref = torch.cat([reference_hypercolumn.squeeze(0)[:, i, j].unsqueeze(0) for i, j in zip(ref2d[:,0],
                                 ref2d[:,1])]).type(torch.DoubleTensor)
         feature_map_query = query_hypercolumn.squeeze(0).type(torch.DoubleTensor)
-        # T_init = filename_to_pose['/'.join(ref_images[0].split('/')[-3:])][1]
-        T_init = prediction.matrix
+        T_init = filename_to_pose['/'.join(ref_images[i].split('/')[-3:])][1]
+        # T_init = prediction.matrix
         R_init, t_init = torch.from_numpy(T_init[:3, :3]), torch.from_numpy(T_init[:3,3])
         feature_grad_x, feature_grad_y = sobel_filter(feature_map_query)
         K = torch.from_numpy(filename_to_intrinsics[ref_images[k]][0]).type(torch.DoubleTensor)
