@@ -6,7 +6,7 @@ include 'configs/pose_prediction/sparse_to_dense_pose_prediction.gin'
 
 # Pre-trained model weights
 ImageRetrievalModel.checkpoint_path = '../checkpoints/robotcar/weights.pth.tar'
-SparseToDensePredictor.output_filename = '../results/robotcar/sparse_to_dense_predictions.txt'
+SparseToDensePredictor.output_filename = '../results/robotcar/sparse_to_dense_predictions_night_rain.txt'
 
 # Image logs
 plot_correspondences.plot_correspondences.export_folder = '../logs/sparse_to_dense/correspondences/robotcar/'
