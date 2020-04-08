@@ -111,7 +111,7 @@ if __name__ == '__main__':
     gin.parse_config_file(
         'configs/runs/run_{}_on_{}.gin'.format('sparse_to_dense', 'robotcar'))
 
-    net = network.ImageRetrievalModel(device = "cpu")
+    net = network.ImageRetrievalModel(device = "cuda")
     s2dPnP = SparseToDenseFeatureMetricPnP(filename_to_pose, filename_to_intrinsics,
             filename_to_local_reconstruction, net)
 
