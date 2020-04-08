@@ -147,7 +147,7 @@ if __name__ == '__main__':
         cv2.imwrite(args.result + 'ref_'+ str(k) + '_detection.png', r_img)
 
         for i, p in enumerate(prediction.query_inliers.astype(int)):
-            print(i, p)
+            # print(i, p)
             cv2.circle(q_img, tuple(p), 1, (128, 128, 0), 3)
 
         cv2.imwrite(args.result + 'query_'+ str(k) + '_detection.png', q_img)
@@ -157,7 +157,7 @@ if __name__ == '__main__':
         feature_ref = torch.cat([reference_hypercolumn.squeeze(0)[:, i, j].unsqueeze(0) for i, j in zip(ref2d[:,0],
                                 ref2d[:,1])]).type(torch.DoubleTensor)
         feature_map_query = query_hypercolumn.squeeze(0).type(torch.DoubleTensor)
-        T_init = filename_to_pose['/'.join(ref_images[i].split('/')[-3:])][1]
+        T_init = filename_to_pose['/'.join(ref_images[k].split('/')[-3:])][1]
         # T_init = prediction.matrix
         R_init, t_init = torch.from_numpy(T_init[:3, :3]), torch.from_numpy(T_init[:3,3])
         feature_grad_x, feature_grad_y = sobel_filter(feature_map_query)
