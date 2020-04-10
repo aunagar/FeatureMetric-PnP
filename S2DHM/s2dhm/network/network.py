@@ -143,6 +143,7 @@ class ImageRetrievalModel():
             # Final descriptor size (concat. intermediate features)
             final_descriptor_size = sum([x.shape[1] for x in feature_maps])
             # print("Hypercolumn size is {}".format(final_descriptor_size))
+            print( "Total # of layers used in HC are {}".format(len(feature_maps            )) )
             b, c, w, h = feature_maps[0].shape
             # print("Hypercolumn resolution is {} x {}".format(w, h))
             hypercolumn = torch.zeros(
@@ -151,6 +152,7 @@ class ImageRetrievalModel():
             # Upsample to the largest feature map size
             start_index = 0
             for j in range(len(self._hypercolumn_layers)):
+                print( feature_maps[j].shape)
                 descriptor_size = feature_maps[j].shape[1]
                 upsampled_map = interpolate(
                     feature_maps[j], size=(w, h),
