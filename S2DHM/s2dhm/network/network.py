@@ -132,7 +132,13 @@ class ImageRetrievalModel():
                 device=self._device)
             image_resolution = feature_map[0].shape[1:]
             feature_maps, j = [], 0
-            for i, layer in enumerate(list(self._model.encoder.children())):
+
+            gpu_count = torch.cuda.device_count()
+            if gpu_count>  1:
+                layers = list(list(self._model.encoder.children())[0].children())
+            else:
+                layers = list(self._model.encoder.children())
+            for i, layer in enumerate(layers):
                 if(j==len(self._hypercolumn_layers)):
                     break
                 if(i==self._hypercolumn_layers[j]):
@@ -143,7 +149,6 @@ class ImageRetrievalModel():
             # Final descriptor size (concat. intermediate features)
             final_descriptor_size = sum([x.shape[1] for x in feature_maps])
             # print("Hypercolumn size is {}".format(final_descriptor_size))
-            print( "Total # of layers used in HC are {}".format(len(feature_maps            )) )
             b, c, w, h = feature_maps[0].shape
             # print("Hypercolumn resolution is {} x {}".format(w, h))
             hypercolumn = torch.zeros(
