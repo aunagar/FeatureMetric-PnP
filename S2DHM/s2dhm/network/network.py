@@ -157,7 +157,6 @@ class ImageRetrievalModel():
             # Upsample to the largest feature map size
             start_index = 0
             for j in range(len(self._hypercolumn_layers)):
-                print( feature_maps[j].shape)
                 descriptor_size = feature_maps[j].shape[1]
                 upsampled_map = interpolate(
                     feature_maps[j], size=(w, h),
