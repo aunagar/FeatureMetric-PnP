@@ -7,6 +7,9 @@ from .utils import squared_loss, scaled_loss
 import torch
 from torch import nn
 import numpy as np
+import pickle
+
+from .model_config import *
 
 """
 @ToDo:
@@ -128,6 +131,10 @@ class sparse3DBA(nn.Module):
         @feature_grad_y : feature gradient map for query image (CxHxW)
         @K: Camera matrix
         '''
+
+        if not track:
+            track = track_
+            pickle_path = pickle_path_
 
         # This might be convenient but might to lead to errors
         if R_init is None: # If R is not inialized, initialize it as identity
@@ -276,4 +283,8 @@ class sparse3DBA(nn.Module):
                 lr = lr_reset
             prev_cost = new_cost
             R, t = R_new, t_new # Actually we should write the result only if the cost decreased!
+
+        if track and (pickle_path is not None):
+            pickle.dump(self.track_, open(pickle_path, "wb"))
+
         return R, t
