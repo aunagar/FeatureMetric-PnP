@@ -67,12 +67,15 @@ if __name__ == '__main__':
     DATA_PATH = args.dataset
 
     # put triangulation file in the same folder as robotcar data
-    triangulation_file = DATA_PATH + 'robotcar_triangulation.npz'
+    triangulation_file = DATA_PATH + '/data/triangulation/robotcar_triangulation.npz'
     nvm_filepath = DATA_PATH + '3D-models/all-merged/all.nvm'
     image_root = DATA_PATH + 'images/'
 
     # if no file is provided in args, we will use our own!
-    ref_images = ['overcast-reference/rear/1417176495903575.jpg',
+    ref_images = ['overcast-reference/rear/1417176495903575.jpg']
+    
+    """
+    ['overcast-reference/rear/1417176495903575.jpg',
                 'overcast-reference/rear/1417176586163507.jpg',
                 'overcast-reference/rear/1417176991015329.jpg',
                 'overcast-reference/rear/1417177488763211.jpg',
@@ -80,7 +83,11 @@ if __name__ == '__main__':
                 'overcast-reference/rear/1417177961605723.jpg',
                 'overcast-reference/rear/1417177976512750.jpg',
                 'overcast-reference/rear/1417177990238067.jpg']
-    query_images = ['overcast-reference/rear/1417176509083576.jpg',
+    """
+    query_images = ['overcast-reference/rear/1417176509083576.jpg']
+    
+    """
+    ['overcast-reference/rear/1417176509083576.jpg',
                 'overcast-reference/rear/1417176586345356.jpg',
                 'overcast-reference/rear/1417176991197053.jpg',
                 'overcast-reference/rear/1417177489035919.jpg',
@@ -88,6 +95,7 @@ if __name__ == '__main__':
                 'overcast-reference/rear/1417177961787572.jpg',
                 'overcast-reference/rear/1417177976603612.jpg',
                 'overcast-reference/rear/1417177990601642.jpg']
+    """
 
 
     if args.ref_image:
@@ -139,6 +147,8 @@ if __name__ == '__main__':
         ### For plotting
         q_img = cv2.imread(query_images[k])
         r_img = cv2.imread(ref_images[k])
+
+        cv2.imwrite(args.result + 'query_'+ str(k) + '_raw.png', q_img)
 
         for i, p in enumerate(prediction.reference_inliers.astype(int)):
             # print(i, p)
