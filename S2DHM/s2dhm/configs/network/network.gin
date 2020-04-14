@@ -14,8 +14,8 @@ compute_hypercolumn.resize = True
 
 
 # The hypercolumn layer indices
-# ImageRetrievalModel.hypercolumn_layers = [14, 17, 21, 24, 28]
-ImageRetrievalModel.hypercolumn_layers = [9, 14, 17,21, 24]
+ImageRetrievalModel.hypercolumn_layers = [14, 17, 21, 24, 28]
+# ImageRetrievalModel.hypercolumn_layers = [9, 14, 17,21, 24]
 # ImageRetrievalModel.hypercolumn_layers = [9, 17, 21, 24, 28]
 
 # Misc.
