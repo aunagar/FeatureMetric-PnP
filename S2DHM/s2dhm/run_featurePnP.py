@@ -77,23 +77,65 @@ if __name__ == '__main__':
     image_root = DATA_PATH + 'images/'
 
     # if no file is provided in args, we will use our own!
-    ref_images = ['overcast-reference/rear/1417176495903575.jpg',
-                'overcast-reference/rear/1417176586163507.jpg',
-                'overcast-reference/rear/1417176991015329.jpg',
-                'overcast-reference/rear/1417177488763211.jpg',
-                'overcast-reference/rear/1417177952697851.jpg',
-                'overcast-reference/rear/1417177961605723.jpg',
-                'overcast-reference/rear/1417177976512750.jpg',
-                'overcast-reference/rear/1417177990238067.jpg']
+    #ref_images = ['overcast-reference/rear/1417176495903575.jpg',
+    #            'overcast-reference/rear/1417176586163507.jpg',
+    #            'overcast-reference/rear/1417176991015329.jpg',
+    #            'overcast-reference/rear/1417177488763211.jpg',
+    #            'overcast-reference/rear/1417177952697851.jpg',
+    #            'overcast-reference/rear/1417177961605723.jpg',
+    #            'overcast-reference/rear/1417177976512750.jpg',
+    #            'overcast-reference/rear/1417177990238067.jpg']
 
-    query_images = ['overcast-reference/rear/1417176509083576.jpg',
-                'overcast-reference/rear/1417176586345356.jpg',
-                'overcast-reference/rear/1417176991197053.jpg',
-                'overcast-reference/rear/1417177489035919.jpg',
-                'overcast-reference/rear/1417177952879702.jpg',
-                'overcast-reference/rear/1417177961787572.jpg',
-                'overcast-reference/rear/1417177976603612.jpg',
-                'overcast-reference/rear/1417177990601642.jpg']
+    #query_images = ['overcast-reference/rear/1417176509083576.jpg',
+    #            'overcast-reference/rear/1417176586345356.jpg',
+    #            'overcast-reference/rear/1417176991197053.jpg',
+    #            'overcast-reference/rear/1417177489035919.jpg',
+    #            'overcast-reference/rear/1417177952879702.jpg',
+    #            'overcast-reference/rear/1417177961787572.jpg',
+    #            'overcast-reference/rear/1417177976603612.jpg',
+    #           'overcast-reference/rear/1417177990601642.jpg']
+    
+    ref_images = ['overcast-reference/rear/1417177002559198.jpg',
+                 'overcast-reference/rear/1417178011962261.jpg',
+                 'overcast-reference/rear/1417178029141715.jpg',
+                 'overcast-reference/rear/1417176982562024.jpg',
+                 'overcast-reference/rear/1417177820625573.jpg',
+                 'overcast-reference/rear/1417178029141715.jpg',
+                 'overcast-reference/rear/1417176981834751.jpg',
+                 'overcast-reference/rear/1417178027960009.jpg',
+                 'overcast-reference/rear/1417178468625282.jpg',
+                 'overcast-reference/rear/1417178029141715.jpg',
+                 'overcast-reference/rear/1417178379183355.jpg',
+                 'overcast-reference/rear/1417178590971711.jpg',
+                 'overcast-reference/rear/1417178698774813.jpg',
+                 'overcast-reference/rear/1417178010326116.jpg',
+                 'overcast-reference/rear/1417176931296517.jpg',
+                 'overcast-reference/rear/1417176931750953.jpg',
+                 'overcast-reference/rear/1417177647377229.jpg',
+                 'overcast-reference/rear/1417177964605301.jpg',
+                 'overcast-reference/rear/1417178379183355.jpg',
+                 'overcast-reference/rear/1417177167899474.jpg']
+    
+    query_images = ['night-rain/rear/1418840703983130.jpg',
+                 'night-rain/rear/1418841610371301.jpg',
+                 'night-rain/rear/1418841595623116.jpg',
+                 'night-rain/rear/1418840690234831.jpg',
+                 'night-rain/rear/1418841345903884.jpg',
+                 'night-rain/rear/1418841595123179.jpg',
+                 'night-rain/rear/1418840689734892.jpg',
+                 'night-rain/rear/1418841595873086.jpg',
+                 'night-rain/rear/1418841708859176.jpg',
+                 'night-rain/rear/1418841594873210.jpg',
+                 'night-rain/rear/1418841677363052.jpg',
+                 'night-rain/rear/1418841843342625.jpg',
+                 'night-rain/rear/1418841951079368.jpg',
+                 'night-rain/rear/1418841609996348.jpg',
+                 'night-rain/rear/1418840648989932.jpg',
+                 'night-rain/rear/1418840649364886.jpg',
+                 'night-rain/rear/1418841311158167.jpg',
+                 'night-rain/rear/1418841403146829.jpg',
+                 'night-rain/rear/1418841677238068.jpg',
+                 'night-rain/rear/1418840816969162.jpg']
 
 
     if args.ref_image:
@@ -118,7 +160,10 @@ if __name__ == '__main__':
         'configs/runs/run_{}_on_{}.gin'.format('sparse_to_dense', 'robotcar'))
 
     #PnP or PnP+Ransac can be switched in the gin-config file of solve_pnp!!! ("use_ransac")
-    net = network.ImageRetrievalModel(device = "cpu")
+    #net = network.ImageRetrievalModel(device = "cpu")
+
+    net = network.ImageRetrievalModel(device = "cuda")
+    
     s2dPnP = SparseToDenseFeatureMetricPnP(filename_to_pose, filename_to_intrinsics,
             filename_to_local_reconstruction, net)
 
@@ -157,7 +202,7 @@ if __name__ == '__main__':
         feature_ref = torch.cat([reference_hypercolumn.squeeze(0)[:, i, j].unsqueeze(0) for i, j in zip(ref2d[:,0],
                                 ref2d[:,1])]).type(torch.DoubleTensor)
         feature_map_query = query_hypercolumn.squeeze(0).type(torch.DoubleTensor)
-        # T_init = filename_to_pose['/'.join(ref_images[0].split('/')[-3:])][1]
+        # T_init = filename_to_pose['/'.join(ref_images[k].split('/')[-3:])][1]
         T_init = prediction.matrix
         R_init, t_init = torch.from_numpy(T_init[:3, :3]), torch.from_numpy(T_init[:3,3])
         feature_grad_x, feature_grad_y = sobel_filter(feature_map_query)
@@ -184,6 +229,7 @@ if __name__ == '__main__':
         # cv2.imwrite(args.result + 'query_' + str(k) + '_initialization.png', q_img)
 
         model = sparse3DBA(n_iters = 500, lambda_ = 0.1, verbose=False)
+
         R, t = model(pts3D, feature_ref, feature_map_query, feature_grad_x, feature_grad_y, K, 1024, 1024,R_init, t_init)
 
         result['R'] = R.numpy()

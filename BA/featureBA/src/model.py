@@ -260,9 +260,9 @@ class sparse3DBA(nn.Module):
 
             # Rotational delta as a skew symmetric matrix -> SO3
             dr = so3exp_map(dw)
-            if self.verbose:
-                print("dr is : ", dw)
-                print("dt is : ", dt)
+            # if self.verbose:
+                # print("dr is : ", dw)
+                # print("dt is : ", dt)
 
             # Update Rotation and translation of camera
             R_new = dr @ R 
