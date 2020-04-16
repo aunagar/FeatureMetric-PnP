@@ -15,11 +15,11 @@ from .model_config import *
 @ToDo:
     - Check if this masking of supported points works as expected (done, seems to work good)
     - We project points 2 times, should decrease to once only (perf.)
-    - Function returns the last R and t, which are not necessarily the best
+    - Function returns the last R and t, which are not necessarily the best (done)
     - Try to explain this spurious oscillations sometimes
     - Try to find a workaround for local minimas, e.g. perturb randomly around best guess
     - Penalize removing points with mask (should add to error)
-    - Threshold far-off feature errors
+    - Threshold far-off feature errors (done)
     - If the feature gradient is smaller than the image size, we take the closest one (see
         keypoint_association.py) (done)
 """
@@ -92,44 +92,55 @@ def points_within_image(points_2d, width, height, pad=0):
            (points_2d[:,1] >= pad) & \
            (points_2d[:,0] < width - pad) & \
            (points_2d[:,1] < height - pad)
-
     return mask
 
 
-def threshold_feature_errors(feature_errors, mode="keep all"):
-    """PLACEHOLDER FOR THRESHOLD FUNC, returns a 1D mask"""
-    return 0
+def ratio_threshold_feature_errors(feature_errors, threshold = 0.8):
+    """
+    Function returns a mask (True,False) with feature errors that are < max(feature_errors) * threshold
+    """
+    limit = torch.max(torch.abs(feature_errors)) * threshold
+    mask = (torch.abs(feature_errors) < limit)
+
+    return mask
 
 class sparse3DBA(nn.Module):
     def __init__(self, n_iters, loss_fn = squared_loss, lambda_ = 0.01,
-                opt_depth=True, verbose=False):
+                opt_depth=True, verbose=False, ratio_threshold =  0.8):
         super().__init__()
         self.iterations = n_iters
         self.loss_fn = loss_fn
         self.verbose = verbose
         self.lambda_ = lambda_
-        self.track_ = {"Rs":[],"ts":[], "costs": [], "points2d":[], "points3d":[], "mask":[]}
+        self.track_ = {"Rs":[],"ts":[], "costs": [], "points2d":[], "mask":[], "threshold_mask":[]}
+        self.use_ratio_test_ = ratio_threshold is not None
+        self.ratio_threshold_ = ratio_threshold
 
 
-    def track(self, R,t, cost, points_2d, points_3d, mask):
+    def track(self, R,t, cost, points_2d,  mask, threshold_mask):
         self.track_["Rs"].append(R)
         self.track_["ts"].append(t)
         self.track_["costs"].append(cost)
         self.track_["points2d"].append(points_2d)
-        self.track_["points3d"].append(points_3d)
         self.track_["mask"].append(mask)
+        self.track_["threshold_mask"].append(threshold_mask)
 
     def forward(self, pts3D, feature_ref, feature_map_query,
                 feature_grad_x, feature_grad_y, K, im_width, im_height, R_init=None, t_init=None,
-                confidence=None, scale=None, track = False, log = True):
+                track = False, log = True,confidence=None, scale=None):
         '''
         inputs:
         @pts3D : 3D points in reference camera frame (Nx3)
-        @feature_ref: features for these 3D points in reference frame (NxC)
-        @feature_map_query: feature map for the query image (CxHxW)
+        @feature_ref : features for these 3D points in reference frame (NxC)
+        @feature_map_query : feature map for the query image (CxHxW)
         @feature_grad_x : feature gradient map for query image (CxHxW)
         @feature_grad_y : feature gradient map for query image (CxHxW)
-        @K: Camera matrix
+        @K : Camera matrix
+
+        optional:
+        @R_init : Initial rotation matrix (3x3)
+        @t_init : Initial translation vector (3x1)
+        @track : Whether a history of parameters should be written to self.track_
         '''
 
         if not track:
@@ -150,7 +161,8 @@ class sparse3DBA(nn.Module):
         lambda_ = self.lambda_ # lambda for LM method
         lr = 1.0 # learning rate
         lr_reset = 1.0 #reset learning rate
-            
+
+        #no_outliers = torch.new_empty((0,1))
 
         for i in range(self.iterations):
 
@@ -165,13 +177,18 @@ class sparse3DBA(nn.Module):
             points_2d_supported = points_2d[mask_supported,:]
             points_3d_supported = points_3d[mask_supported,:]
 
-            # Feature error, NxC
-            if self.verbose:
-                print("printing")
-                # print("Supported mask: ",mask_supported)
-                # print("All points: ", points_2d)
             error = indexing_(feature_map_query, torch.flip(points_2d_supported,(1,)), im_width, im_height) - feature_ref[mask_supported]
 
+            if self.use_ratio_test_:
+                cost_full = 0.5*(error**2).sum(-1)
+                threshold_mask = ratio_threshold_feature_errors(cost_full, threshold = self.ratio_threshold_)
+                error = error[threshold_mask,:]
+                points_2d_supported = points_2d_supported[threshold_mask,:]
+                points_3d_supported = points_3d_supported[threshold_mask,:]
+                #mask_supported[mask_supported] = threshold_mask
+                #outliers = threshold_mask.nonzero()
+            else:
+                threshold_mask = None
             # Cost of Feature error -> SSD
             cost = 0.5*(error**2).sum(-1)
 
@@ -179,11 +196,13 @@ class sparse3DBA(nn.Module):
             #Base Case
             if i == 0:
                 prev_cost = cost.mean(-1)
+                self.best_cost_ = prev_cost
+                num_inliers = points_2d_supported.shape[0]
+                self.initial_cost_ = prev_cost
                 if track:
-                    self.track(R, t,cost.mean().item(), points_2d,points_3d, mask_supported)
+                    self.track(R, t,cost.mean().item(), points_2d, mask_supported, threshold_mask)
             if self.verbose:
                 print('Iter ', i, cost.mean().item())
-            # print("prev cost is ", prev_cost)
 
 
             # Gradient of 3D point P with respect to projection matrix T ([R|t])
@@ -262,12 +281,22 @@ class sparse3DBA(nn.Module):
 
             # Check new error
             new_error = indexing_(feature_map_query, torch.flip(new_points_2d_supported, (1,)), im_width, im_height) - feature_ref[mask_supported]
-            new_cost = 0.5*(new_error**2).sum(-1)
+            
+            if self.use_ratio_test_:
+                new_cost_full = 0.5*(new_error**2).sum(-1)
 
+                new_threshold_mask = ratio_threshold_feature_errors(new_cost_full, threshold = self.ratio_threshold_)
+                new_error = new_error[new_threshold_mask]
+                new_points_2d_supported = new_points_2d_supported[new_threshold_mask,:]
+                new_points_3d_supported = new_points_3d_supported[new_threshold_mask,:]
+                #mask_supported[mask_supported] = new_threshold_mask
+            else:
+                new_threshold_mask = None
+            new_cost = 0.5*(new_error**2).sum(-1)
             new_cost = new_cost.mean(-1)
 
             if track:
-                    self.track(R_new, t_new,new_cost.item(), new_points_2d,new_points_3d, mask_supported)
+                    self.track(R_new, t_new,new_cost.item(), new_points_2d, mask_supported, new_threshold_mask)
 
             if self.verbose:
                 print("new cost is ", new_cost.item())
@@ -275,16 +304,21 @@ class sparse3DBA(nn.Module):
                               1e-6, 1e4) # according to rule, we change the lambda if error increases/decreases
             
             if new_cost > prev_cost:  # cost increased
-                print("cost increased, continue with next iteration")
+                #print("cost increased, continue with next iteration")
                 # print(lambda_)
                 lr = np.clip(0.1*lr, 1e-3, 1.)
                 continue
             else:
                 lr = lr_reset
+                if new_cost < self.best_cost_:
+                    R_best = R_new
+                    t_best = t_new
+                    self.best_num_inliers_ = new_points_2d_supported.shape[0]
+                    self.best_cost_ = new_cost
             prev_cost = new_cost
+            
             R, t = R_new, t_new # Actually we should write the result only if the cost decreased!
 
         if track and (pickle_path is not None):
             pickle.dump(self.track_, open(pickle_path, "wb"))
-
-        return R, t
+        return R_best, t_best
