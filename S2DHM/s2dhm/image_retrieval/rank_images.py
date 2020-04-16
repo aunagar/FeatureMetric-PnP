@@ -41,6 +41,7 @@ def fetch_ranks(file_path: str,
         reference_images != dataset.data['reference_image_names']):
         logging.warn('Existing pre-computed file does not match dataset'
                      'configuration. Recomputing...')
+        print('filenames in ranking does not match with current filenames')
         return compute_ranks(file_path, dataset, network)
     return numpy_file['ranks']
 

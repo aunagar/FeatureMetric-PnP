@@ -13,6 +13,8 @@ from BA.featureBA.src.utils import sobel_filter
 @gin.configurable
 def optimize(query_hypercolumns, net, prediction, K, image_shape):
     
+    print("Initial : {}".format(list(prediction.quaternion) + list(prediction.matrix[:3,3])))
+
     reference_hypercolumns, _ = net.compute_hypercolumn( [prediction.reference_filename], to_cpu=False, resize=True )
     relative_shape = np.array([reference_hypercolumns.shape[2] / image_shape[0], reference_hypercolumns.shape[3] / image_shape[1]])
 
@@ -36,4 +38,5 @@ def optimize(query_hypercolumns, net, prediction, K, image_shape):
     T[:3, :3], T[3,:3] = R.numpy(), t.numpy()
 
     quaternion = matrix_utils.matrix_quaternion(T)
-    return T[:3, :3], quaternion
+    print("Final : {}".format(list(quaternion) + list(t.numpy())))
+    return list(t.numpy()), list(quaternion)

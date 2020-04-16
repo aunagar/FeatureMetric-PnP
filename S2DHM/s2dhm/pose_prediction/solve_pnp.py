@@ -18,7 +18,8 @@ def solve_pnp(points_2D: np.ndarray,
               minimum_inliers: int,
               reference_filename: str,
               reference_2D_points: np.ndarray,
-              reference_keypoints: np.ndarray):
+              reference_keypoints: np.ndarray,
+              use_ransac: bool):
     """ Solve PnP using pre-established 2D-3D correspondences.
 
     Args:
@@ -37,6 +38,27 @@ def solve_pnp(points_2D: np.ndarray,
         Prediction: A prediction namedtuple.
     """
     # Run PnP + RANSAC if there are sufficient matches
+    print("Total Points: ", points_2D.shape[0])
+    if not use_ransac and points_2D.shape[0] > minimum_matches:
+        success, rvec, tvec = cv2.solvePnP(
+            points_3D,
+            points_2D,
+            intrinsics, distortion_coefficients, flags=cv2.SOLVEPNP_ITERATIVE)
+        assert success
+        matrix = matrix_utils.matrix_from_se3(tvec, rvec)
+        quaternion = matrix_utils.matrix_quaternion(matrix)
+        return Prediction(
+            success=True,
+            num_matches=points_2D.shape[0],
+            num_inliers=points_2D.shape[0],
+            reference_inliers=reference_2D_points,
+            query_inliers=np.squeeze(points_2D),
+            points_3d = points_3D,
+            quaternion=quaternion,
+            matrix=matrix,
+            reference_filename=reference_filename,
+            reference_keypoints=reference_keypoints)
+    
     if points_2D.shape[0] > minimum_matches:
         success, rvec, tvec, inliers = cv2.solvePnPRansac(
             points_3D, points_2D, intrinsics, distortion_coefficients,

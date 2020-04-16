@@ -66,7 +66,7 @@ def fast_sparse_keypoint_descriptor(keypoints, dense_keypoints,
         # Find closest points between detected keypoints and dense keypoints
         if torch.cuda.is_available():
             argmins = fast_closest_points(
-                torch.from_numpy(kp[:2,:]).cuda(), dense_keypoints)
+                torch.from_numpy(kp[:2,:]).cuda(), dense_keypoints.cuda())
         else:
             argmins = fast_closest_points(
                 torch.from_numpy(kp[:2,:]), dense_keypoints)

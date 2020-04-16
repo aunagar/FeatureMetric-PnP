@@ -1,1 +1,1 @@
-bsub -W 48:00 -n 1 -R "rusage[mem=32768,ngpus_excl_p=1]" -oo output.txt python run.py --dataset robotcar --mode sparse_to_dense
+bsub -I -n 1 -R "rusage[mem=32000,ngpus_excl_p=1]" python run_featurePnP.py --dataset /cluster/scratch/aunagar/S2DHM/robotcar/ --result /cluster/scratch/aunagar/S2DHM/result/s2dhm_night-rain_14_17_21_24_28/

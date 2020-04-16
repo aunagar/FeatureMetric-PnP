@@ -12,3 +12,5 @@
 
 (7) Added "points_3d" in the output of _nearest_neighbor_prediction function (line 55) of pose_prediction/predictor.py
 
+(8) In Network.py --> added functionality to make it work on multiple GPUs (in compute_hypercolumn, line 136-140)
+
