@@ -1,2 +1,2 @@
 track_ = True
-pickle_path_ = "results/model_pickle.p"
+pickle_path_ = None #"results/model_pickle.p"
