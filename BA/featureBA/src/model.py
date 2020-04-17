@@ -106,7 +106,7 @@ def ratio_threshold_feature_errors(feature_errors, threshold = 0.8):
 
 class sparse3DBA(nn.Module):
     def __init__(self, n_iters, loss_fn = squared_loss, lambda_ = 0.01,
-                opt_depth=True, verbose=False, ratio_threshold =  0.8):
+                opt_depth=True, verbose=False, ratio_threshold = None):
         super().__init__()
         self.iterations = n_iters
         self.loss_fn = loss_fn
@@ -198,6 +198,9 @@ class sparse3DBA(nn.Module):
                 prev_cost = cost.mean(-1)
                 self.best_cost_ = prev_cost
                 num_inliers = points_2d_supported.shape[0]
+                R_best = R
+                t_best = t
+                self.best_num_inliers_  = num_inliers
                 self.initial_cost_ = prev_cost
                 if track:
                     self.track(R, t,cost.mean().item(), points_2d, mask_supported, threshold_mask)
