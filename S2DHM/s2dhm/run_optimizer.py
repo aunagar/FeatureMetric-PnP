@@ -69,7 +69,17 @@ def get_pose_predictor(pose_predictor_cls: predictor.PosePredictor,
 if __name__ == '__main__':
     args = parser.parse_args()
     DATA_PATH = args.dataset
-    result_frame = pd.DataFrame(columns=["reference_image_origin", "query_image_origin","reference_image_path","query_image_path","num_initial_matches", "num_final_matches", "initial_cost", "final_cost","track_pickle_path","result_path"])
+    result_frame = pd.DataFrame(columns=[
+        "reference_image_origin",
+        "query_image_origin",
+        "reference_image_path",
+        "query_image_path",
+        "num_initial_matches",
+        "num_final_matches",
+        "initial_cost",
+        "final_cost",
+        "track_pickle_path",
+        "result_path"])
 
     # put triangulation file in the same folder as robotcar data
     triangulation_file = DATA_PATH + '/data/triangulation/robotcar_triangulation.npz'
@@ -167,7 +177,8 @@ if __name__ == '__main__':
     s2dPnP = SparseToDenseFeatureMetricPnP(filename_to_pose, filename_to_intrinsics,
             filename_to_local_reconstruction, net)
 
-    for k in range(len(query_images)):
+    # Run only for one image to test optimizer
+    for k in [1]: #range(len(query_images)):
         prediction, query_hypercolumn, reference_hypercolumn = s2dPnP.run(query_images[k], ref_images[k])
         
         # print("Hypercolumn size is {}".format(query_hypercolumn.shape))
@@ -179,7 +190,7 @@ if __name__ == '__main__':
         q_img = cv2.imread(query_images[k])
         r_img = cv2.imread(ref_images[k])
 
-        query_image_path =args.result + 'query_'+ str(k) + '_raw.png'
+        query_image_path = args.result + 'query_'+ str(k) + '_raw.png'
         ref_image_path = args.result + 'reference_'+ str(k) + '_raw.png'
 
         cv2.imwrite(query_image_path, q_img)
@@ -256,7 +267,17 @@ if __name__ == '__main__':
         #cv2.imwrite(args.result + 'query_' + str(k) + '_final.png', q_img)
 
         """Write to DataFrame"""
-        result_frame.loc[k] = [ref_images[k], query_images[k],ref_image_path, query_image_path, pts3D.shape[0], model.best_num_inliers_, model.initial_cost_.item(), model.best_cost_.item(), track_pickle_path, result_path]
+        result_frame.loc[k] = [
+                ref_images[k],
+                query_images[k],
+                ref_image_path,
+                query_image_path,
+                pts3D.shape[0],
+                model.best_num_inliers_,
+                model.initial_cost_.item(),
+                model.best_cost_.item(),
+                track_pickle_path,
+                result_path]
         print(result_frame.loc[k,:])
     result_frame.to_csv(args.result + 'summary.csv', sep = ";", index = False)
     del filename_to_pose, filename_to_intrinsics, query_hypercolumn, reference_hypercolumn
