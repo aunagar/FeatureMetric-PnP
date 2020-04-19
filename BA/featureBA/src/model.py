@@ -143,12 +143,14 @@ class sparse3DBA(nn.Module):
         @track : Whether a history of parameters should be written to self.track_
         '''
 
+        print("torch.cuda.is_available(): " + str(torch.cuda.is_available()))
+
         if not track:
             track = track_
             pickle_path = pickle_path_
 
         # This might be convenient but might to lead to errors
-        if R_init is None: # If R is not inialized, initialize it as identity
+        if R_init is None: # If R is not initalized, initialize it as identity
             R = torch.eye(3).to(pts3D)
         else:
             R = R_init
@@ -164,14 +166,28 @@ class sparse3DBA(nn.Module):
 
         #no_outliers = torch.new_empty((0,1))
 
+        start = torch.cuda.Event(enable_timing=True)
+        end = torch.cuda.Event(enable_timing=True)
+
+        # Move stuff to GPU
+        K, R, t, pts3D = K.cuda(), R.cuda(), t.cuda(), pts3D.cuda()
+        feature_map_query, feature_ref = feature_map_query.cuda(), feature_ref.cuda()
+        feature_grad_x, feature_grad_y = feature_grad_x.cuda(), feature_grad_y.cuda()
+
+        # start.record()
+        # end.record()
+        # torch.cuda.synchronize()
+        # print("iter %d: %f" % (i, start.elapsed_time(end)))
+
         for i in range(self.iterations):
 
-            # project all points using current R and T on image
+            # project all points using current R and T on image 
             points_3d = torch.mm(R, pts3D.T).T + t
-            points_2d = torch.round(from_homogeneous(torch.mm(K, points_3d.T).T)).type(torch.IntTensor)-1
+            
+            points_2d = torch.round(from_homogeneous(torch.mm(K, points_3d.T).T)).type(torch.cuda.IntTensor)-1
 
             # Get the points that are supported within our image size
-            mask_supported = points_within_image(points_2d,im_width, im_height)
+            mask_supported = points_within_image(points_2d, im_width, im_height)
 
             # We only take supported points
             points_2d_supported = points_2d[mask_supported,:]
@@ -200,7 +216,7 @@ class sparse3DBA(nn.Module):
                 num_inliers = points_2d_supported.shape[0]
                 R_best = R
                 t_best = t
-                self.best_num_inliers_  = num_inliers
+                self.best_num_inliers_ = num_inliers
                 self.initial_cost_ = prev_cost
                 if track:
                     self.track(R, t,cost.mean().item(), points_2d, mask_supported, threshold_mask)
@@ -324,4 +340,4 @@ class sparse3DBA(nn.Module):
 
         if track and (pickle_path is not None):
             pickle.dump(self.track_, open(pickle_path, "wb"))
-        return R_best, t_best
+        return R_best.cpu(), t_best.cpu()
