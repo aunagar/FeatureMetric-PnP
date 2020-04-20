@@ -37,6 +37,7 @@ def optimizer_step(g, H, lambda_=0, lr = 1.):
         g: batched gradient tensor of size (..., N).
         H: batched hessian tensor of size (..., N, N).
         lambda_: damping factor for LM (use GN if lambda_=0).
+        >> Done on GPU
     """
     if lambda_:  # LM instead of GN
         D = (H.diagonal(dim1=-2, dim2=-1) + 1e-9).diag_embed()
@@ -61,6 +62,8 @@ def indexing_(feature_map, points, width, height):
 
     outputs: 
     features : features for the points (NxC)
+    
+    >> Done on CPU
     '''
 
     points_row = (points[:,0].double() * feature_map.shape[-2] / height).floor().type(torch.ShortTensor) #Should be short
@@ -86,6 +89,7 @@ def points_within_image(points_2d, width, height, pad=0):
 
     outputs: 
     mask : Flag whether each point is within the range (Nx1)
+    >> Done on CPU
     '''
 
     mask = (points_2d[:,0] >= pad) & \
@@ -143,7 +147,8 @@ class sparse3DBA(nn.Module):
         @track : Whether a history of parameters should be written to self.track_
         '''
 
-        print("torch.cuda.is_available(): " + str(torch.cuda.is_available()))
+        if torch.cuda.is_available():
+            print("Running Sparse3DBA.forward on GPU")
 
         if not track:
             track = track_
@@ -166,8 +171,8 @@ class sparse3DBA(nn.Module):
 
         #no_outliers = torch.new_empty((0,1))
 
-        start = torch.cuda.Event(enable_timing=True)
-        end = torch.cuda.Event(enable_timing=True)
+        # start = torch.cuda.Event(enable_timing=True)
+        # end = torch.cuda.Event(enable_timing=True)
 
         # Move stuff to GPU
         K, R, t, pts3D = K.cuda(), R.cuda(), t.cuda(), pts3D.cuda()
@@ -183,7 +188,7 @@ class sparse3DBA(nn.Module):
 
             # project all points using current R and T on image 
             points_3d = torch.mm(R, pts3D.T).T + t
-            
+ 
             points_2d = torch.round(from_homogeneous(torch.mm(K, points_3d.T).T)).type(torch.cuda.IntTensor)-1
 
             # Get the points that are supported within our image size
@@ -207,7 +212,6 @@ class sparse3DBA(nn.Module):
                 threshold_mask = None
             # Cost of Feature error -> SSD
             cost = 0.5*(error**2).sum(-1)
-
 
             #Base Case
             if i == 0:
@@ -233,7 +237,6 @@ class sparse3DBA(nn.Module):
                 batched_eye_like(points_3d_supported, 3), -skew_symmetric(points_3d_supported)], -1)
             # print("J_p_T is  ", J_p_T)
 
-
             # Gradient of pixel point px with respect to 3D point P
             # Derived from camera projection equation: px = K * [R|t] * P
             # + homogeneous!
@@ -256,7 +259,7 @@ class sparse3DBA(nn.Module):
             # print("J_f_px is ", J_f_px)
             # gradient of feature error w.r.t. camera matrix T (including K)
             J_e_T = J_f_px @ J_px_p @ J_p_T
-
+            
             #Grad = J_e_T * error
             Grad = torch.einsum('bij,bi->bj', J_e_T, error)
             Grad = Grad.sum(-2)  # Grad was ... x N x 6
@@ -265,10 +268,10 @@ class sparse3DBA(nn.Module):
             
             Hess = torch.einsum('ijk,ijl->ikl', J, J) # Approximate Hessian = J.T * J
             Hess = Hess.sum(-3)  # Hess was ... x N x 6 x 6
-
+ 
             # finding gradient step using LM or Newton method
             delta = optimizer_step(Grad, Hess, lambda_, lr = lr)
-
+            
             # delta = -lr*Grad
             if torch.isnan(delta).any():
                 logging.warning('NaN detected, exit')
@@ -289,7 +292,7 @@ class sparse3DBA(nn.Module):
 
             new_points_3d = torch.mm(R_new, pts3D.T).T + t_new
             # Maybe there is some minor problem (+-1 pixel due to rounding!)
-            new_points_2d = torch.round(from_homogeneous(torch.mm(K, new_points_3d.T).T)).type(torch.IntTensor) - 1
+            new_points_2d = torch.round(from_homogeneous(torch.mm(K, new_points_3d.T).T)).type(torch.cuda.IntTensor) - 1
             
             # Get mask for new points
             mask_supported = points_within_image(new_points_2d, im_width, im_height)
@@ -297,7 +300,7 @@ class sparse3DBA(nn.Module):
             # Mask new points
             new_points_2d_supported = new_points_2d[mask_supported,:]
             new_points_3d_supported = new_points_3d[mask_supported,:]
-
+            
             # Check new error
             new_error = indexing_(feature_map_query, torch.flip(new_points_2d_supported, (1,)), im_width, im_height) - feature_ref[mask_supported]
             
