@@ -239,17 +239,11 @@ if __name__ == '__main__':
 
         # cv2.imwrite(args.result + 'query_' + str(k) + '_initialization.png', q_img)
         
-        model = sparse3DBA(n_iters = 1, lambda_ = 0.1, verbose=False)
+        model = sparse3DBA(n_iters = 5, lambda_ = 0.1, verbose=False)
         
         print("************************* Start model *************************")
 
-        start = torch.cuda.Event(enable_timing=True)
-        end = torch.cuda.Event(enable_timing=True)
-        start.record()
-        R, t = model(pts3D, feature_ref, feature_map_query, feature_grad_x, feature_grad_y, K, 1024, 1024,R_init, t_init)
-        end.record()
-        torch.cuda.synchronize()
-        print("time: %f" % (start.elapsed_time(end)))
+        R, t = model(pts3D, feature_ref, feature_map_query, feature_grad_x, feature_grad_y, K, 1024, 1024, R_init, t_init)
 
         print("************************** End model **************************")
 
