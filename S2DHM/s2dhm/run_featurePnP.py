@@ -39,7 +39,7 @@ parser.add_argument(
 parser.add_argument(
     '--query_image', type = str, help = 'query image path (relative to Image folder)', required = False)
 parser.add_argument(
-    '--track', type = bool, help = 'Whether the track should be written as a pickle file', required = False, default = True)
+    '--track', type = bool, help = 'Whether the track should be written as a pickle file', required = False, default = False)
 
 
 
@@ -185,17 +185,17 @@ if __name__ == '__main__':
         cv2.imwrite(query_image_path, q_img)
         cv2.imwrite(ref_image_path, r_img)
 
-        # for i, p in enumerate(prediction.reference_inliers.astype(int)):
+        for i, p in enumerate(prediction.reference_inliers.astype(int)):
             # print(i, p)
-            # cv2.circle(r_img, tuple(p), 1, (128, 128, 0), 3)
+            cv2.circle(r_img, tuple(p), 1, (128, 128, 0), 3)
 
-        # cv2.imwrite(args.result + 'ref_'+ str(k) + '_detection.png', r_img)
+        cv2.imwrite(args.result + 'ref_'+ str(k) + '_detection.png', r_img)
 
-        # for i, p in enumerate(prediction.query_inliers.astype(int)):
+        for i, p in enumerate(prediction.query_inliers.astype(int)):
             # print(i, p)
-            # cv2.circle(q_img, tuple(p), 1, (128, 128, 0), 3)
+            cv2.circle(q_img, tuple(p), 1, (128, 128, 0), 3)
 
-        # cv2.imwrite(args.result + 'query_'+ str(k) + '_detection.png', q_img)
+        cv2.imwrite(args.result + 'query_'+ str(k) + '_detection.png', q_img)
 
         pts3D = torch.from_numpy(prediction.points_3d.reshape(-1,3))
         ref2d = torch.flip(torch.from_numpy((1/8*prediction.reference_inliers).astype(int)),(1,))
@@ -214,19 +214,19 @@ if __name__ == '__main__':
         # print("Rotation matrix is of shape {} and translation {}".format(R_init.size(), t_init.size()))
         # print("feature gradient is of shape {}".format(feature_grad_x.size()))
         # inital projection and plotting
-        # proj2d = torch.mm(R_init, pts3D.T).T + t_init
-        # proj2d = torch.mm(K, proj2d.T).T
-        # proj2d = proj2d/proj2d[:,-1,None]
-        # proj2d = torch.round(proj2d[:,:2]).type(torch.IntTensor)-1
+        proj2d = torch.mm(R_init, pts3D.T).T + t_init
+        proj2d = torch.mm(K, proj2d.T).T
+        proj2d = proj2d/proj2d[:,-1,None]
+        proj2d = torch.round(proj2d[:,:2]).type(torch.IntTensor)-1
 
         # inital points
-        # q_img = cv2.imread(query_images[k])
+        q_img = cv2.imread(query_images[k])
 
-        # for i, p in enumerate(proj2d):
+        for i, p in enumerate(proj2d):
             # print(i, p)
-            # cv2.circle(q_img, tuple(p), 1, (128, 128, 0), 3)
+            cv2.circle(q_img, tuple(p), 1, (128, 128, 0), 3)
 
-        # cv2.imwrite(args.result + 'query_' + str(k) + '_initialization.png', q_img)
+        cv2.imwrite(args.result + 'query_' + str(k) + '_initialization.png', q_img)
 
         model = sparse3DBA(n_iters = 50, lambda_ = 0.1, verbose=False)
 
@@ -243,17 +243,17 @@ if __name__ == '__main__':
         else:
             track_pickle_path = None
         # final projection and plotting
-        # q_img = cv2.imread(query_images[k])
-        # proj2d = torch.mm(R, pts3D.T).T + t
-        # proj2d = torch.mm(K, proj2d.T).T
-        # proj2d = proj2d/proj2d[:,-1,None]
-        # proj2d = torch.round(proj2d[:,:2]).type(torch.IntTensor)-1
+        q_img = cv2.imread(query_images[k])
+        proj2d = torch.mm(R, pts3D.T).T + t
+        proj2d = torch.mm(K, proj2d.T).T
+        proj2d = proj2d/proj2d[:,-1,None]
+        proj2d = torch.round(proj2d[:,:2]).type(torch.IntTensor)-1
 
-        #for i, p in enumerate(proj2d):
+        for i, p in enumerate(proj2d):
             # print(i, p)
-            # cv2.circle(q_img, tuple(p), 1, (128, 128, 0), 3)
+            cv2.circle(q_img, tuple(p), 1, (128, 128, 0), 3)
 
-        #cv2.imwrite(args.result + 'query_' + str(k) + '_final.png', q_img)
+        cv2.imwrite(args.result + 'query_' + str(k) + '_final.png', q_img)
 
         """Write to DataFrame"""
         result_frame.loc[k] = [ref_images[k], query_images[k],ref_image_path, query_image_path, pts3D.shape[0], model.best_num_inliers_, model.initial_cost_.item(), model.best_cost_.item(), track_pickle_path, result_path]
