@@ -228,7 +228,7 @@ if __name__ == '__main__':
 
         # cv2.imwrite(args.result + 'query_' + str(k) + '_initialization.png', q_img)
 
-        model = sparse3DBA(n_iters = 500, lambda_ = 0.1, verbose=False)
+        model = sparse3DBA(n_iters = 50, lambda_ = 0.1, verbose=False)
 
         R, t = model(pts3D, feature_ref, feature_map_query, feature_grad_x, feature_grad_y, K, 1024, 1024,R_init, t_init)
 
