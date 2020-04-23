@@ -115,27 +115,7 @@ if __name__ == '__main__':
                   'overcast-reference/rear/1417177088547051.jpg',
                   'overcast-reference/rear/1417177821443708.jpg',
                   'overcast-reference/rear/1417177165990619.jpg']
-                    ['night-rain/rear/1418841346403822.jpg',
-                  'night-rain/rear/1418841677987976.jpg',
-                  'night-rain/rear/1418841403271814.jpg',
-                  'night-rain/rear/1418840689734892.jpg',
-                  'night-rain/rear/1418840689859877.jpg',
-                  'night-rain/rear/1418841402646891.jpg',
-                  'night-rain/rear/1418840689484924.jpg',
-                  'night-rain/rear/1418841708859176.jpg',
-                  'night-rain/rear/1418840728855054.jpg',
-                  'night-rain/rear/1418840746477876.jpg',
-                  'night-rain/rear/1418840690109846.jpg',
-                  'night-rain/rear/1418840729479977.jpg',
-                  'night-rain/rear/1418841707859299.jpg',
-                  'night-rain/rear/1418840728730070.jpg',
-                  'night-rain/rear/1418840690234831.jpg',
-                  'night-rain/rear/1418841595623116.jpg',
-                  'night-rain/rear/1418841295785077.jpg',
-                  'night-rain/rear/1418840761601006.jpg',
-                  'night-rain/rear/1418841346653791.jpg',
-                  'night-rain/rear/1418840815469348.jpg']
-    
+                  
     query_images = ['night-rain/rear/1418841346403822.jpg',
                   'night-rain/rear/1418841677987976.jpg',
                   'night-rain/rear/1418841403271814.jpg',
