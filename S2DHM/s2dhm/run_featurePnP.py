@@ -39,7 +39,7 @@ parser.add_argument(
 parser.add_argument(
     '--query_image', type = str, help = 'query image path (relative to Image folder)', required = False)
 parser.add_argument(
-    '--track', type = bool, help = 'Whether the track should be written as a pickle file', required = False, default = True)
+    '--track', type = bool, help = 'Whether the track should be written as a pickle file', required = False, default = False)
 
 
 
@@ -95,47 +95,47 @@ if __name__ == '__main__':
     #            'overcast-reference/rear/1417177976603612.jpg',
     #           'overcast-reference/rear/1417177990601642.jpg']
     
-    ref_images = ['overcast-reference/rear/1417177002559198.jpg',
-                 'overcast-reference/rear/1417178011962261.jpg',
-                 'overcast-reference/rear/1417178029141715.jpg',
-                 'overcast-reference/rear/1417176982562024.jpg',
-                 'overcast-reference/rear/1417177820625573.jpg',
-                 'overcast-reference/rear/1417178029141715.jpg',
-                 'overcast-reference/rear/1417176981834751.jpg',
-                 'overcast-reference/rear/1417178027960009.jpg',
-                 'overcast-reference/rear/1417178468625282.jpg',
-                 'overcast-reference/rear/1417178029141715.jpg',
-                 'overcast-reference/rear/1417178379183355.jpg',
-                 'overcast-reference/rear/1417178590971711.jpg',
-                 'overcast-reference/rear/1417178698774813.jpg',
-                 'overcast-reference/rear/1417178010326116.jpg',
-                 'overcast-reference/rear/1417176931296517.jpg',
-                 'overcast-reference/rear/1417176931750953.jpg',
-                 'overcast-reference/rear/1417177647377229.jpg',
-                 'overcast-reference/rear/1417177964605301.jpg',
-                 'overcast-reference/rear/1417178379183355.jpg',
-                 'overcast-reference/rear/1417177167899474.jpg']
-    
-    query_images = ['night-rain/rear/1418840703983130.jpg',
-                 'night-rain/rear/1418841610371301.jpg',
-                 'night-rain/rear/1418841595623116.jpg',
-                 'night-rain/rear/1418840690234831.jpg',
-                 'night-rain/rear/1418841345903884.jpg',
-                 'night-rain/rear/1418841595123179.jpg',
-                 'night-rain/rear/1418840689734892.jpg',
-                 'night-rain/rear/1418841595873086.jpg',
-                 'night-rain/rear/1418841708859176.jpg',
-                 'night-rain/rear/1418841594873210.jpg',
-                 'night-rain/rear/1418841677363052.jpg',
-                 'night-rain/rear/1418841843342625.jpg',
-                 'night-rain/rear/1418841951079368.jpg',
-                 'night-rain/rear/1418841609996348.jpg',
-                 'night-rain/rear/1418840648989932.jpg',
-                 'night-rain/rear/1418840649364886.jpg',
-                 'night-rain/rear/1418841311158167.jpg',
-                 'night-rain/rear/1418841403146829.jpg',
-                 'night-rain/rear/1418841677238068.jpg',
-                 'night-rain/rear/1418840816969162.jpg']
+    ref_images = ['overcast-reference/rear/1417177821443708.jpg',
+                  'overcast-reference/rear/1417178379637791.jpg',
+                  'overcast-reference/rear/1417177965150722.jpg',
+                  'overcast-reference/rear/1417176981834751.jpg',
+                  'overcast-reference/rear/1417176982016599.jpg',
+                  'overcast-reference/rear/1417177964241727.jpg',
+                  'overcast-reference/rear/1417176981834751.jpg',
+                  'overcast-reference/rear/1417178468625282.jpg',
+                  'overcast-reference/rear/1417177029555384.jpg',
+                  'overcast-reference/rear/1417177069186036.jpg',
+                  'overcast-reference/rear/1417176982016599.jpg',
+                  'overcast-reference/rear/1417177030646106.jpg',
+                  'overcast-reference/rear/1417178467988996.jpg',
+                  'overcast-reference/rear/1417177029100823.jpg',
+                  'overcast-reference/rear/1417176982562024.jpg',
+                  'overcast-reference/rear/1417178029141715.jpg',
+                  'overcast-reference/rear/1417177630834182.jpg',
+                  'overcast-reference/rear/1417177088547051.jpg',
+                  'overcast-reference/rear/1417177821443708.jpg',
+                  'overcast-reference/rear/1417177165990619.jpg']
+                  
+    query_images = ['night-rain/rear/1418841346403822.jpg',
+                  'night-rain/rear/1418841677987976.jpg',
+                  'night-rain/rear/1418841403271814.jpg',
+                  'night-rain/rear/1418840689734892.jpg',
+                  'night-rain/rear/1418840689859877.jpg',
+                  'night-rain/rear/1418841402646891.jpg',
+                  'night-rain/rear/1418840689484924.jpg',
+                  'night-rain/rear/1418841708859176.jpg',
+                  'night-rain/rear/1418840728855054.jpg',
+                  'night-rain/rear/1418840746477876.jpg',
+                  'night-rain/rear/1418840690109846.jpg',
+                  'night-rain/rear/1418840729479977.jpg',
+                  'night-rain/rear/1418841707859299.jpg',
+                  'night-rain/rear/1418840728730070.jpg',
+                  'night-rain/rear/1418840690234831.jpg',
+                  'night-rain/rear/1418841595623116.jpg',
+                  'night-rain/rear/1418841295785077.jpg',
+                  'night-rain/rear/1418840761601006.jpg',
+                  'night-rain/rear/1418841346653791.jpg',
+                  'night-rain/rear/1418840815469348.jpg']
 
 
     if args.ref_image:
@@ -168,6 +168,7 @@ if __name__ == '__main__':
             filename_to_local_reconstruction, net)
 
     for k in range(len(query_images)):
+        #for k in range(1):
         prediction, query_hypercolumn, reference_hypercolumn = s2dPnP.run(query_images[k], ref_images[k])
         
         # print("Hypercolumn size is {}".format(query_hypercolumn.shape))
@@ -185,20 +186,22 @@ if __name__ == '__main__':
         cv2.imwrite(query_image_path, q_img)
         cv2.imwrite(ref_image_path, r_img)
 
-        # for i, p in enumerate(prediction.reference_inliers.astype(int)):
+        for i, p in enumerate(prediction.reference_inliers.astype(int)):
             # print(i, p)
-            # cv2.circle(r_img, tuple(p), 1, (128, 128, 0), 3)
+            cv2.circle(r_img, tuple(p), 1, (128, 128, 0), 3)
 
-        # cv2.imwrite(args.result + 'ref_'+ str(k) + '_detection.png', r_img)
+        cv2.imwrite(args.result + 'ref_'+ str(k) + '_detection.png', r_img)
 
-        # for i, p in enumerate(prediction.query_inliers.astype(int)):
+        for i, p in enumerate(prediction.query_inliers.astype(int)):
             # print(i, p)
-            # cv2.circle(q_img, tuple(p), 1, (128, 128, 0), 3)
+            cv2.circle(q_img, tuple(p), 1, (128, 128, 0), 3)
 
-        # cv2.imwrite(args.result + 'query_'+ str(k) + '_detection.png', q_img)
+        cv2.imwrite(args.result + 'query_'+ str(k) + '_detection.png', q_img)
 
         pts3D = torch.from_numpy(prediction.points_3d.reshape(-1,3))
-        ref2d = torch.flip(torch.from_numpy((1/8*prediction.reference_inliers).astype(int)),(1,))
+        scale = reference_hypercolumn.shape[-1]/r_img.shape[1]
+        print(scale)
+        ref2d = torch.flip(torch.from_numpy((scale*prediction.reference_inliers).astype(int)),(1,))
         feature_ref = torch.cat([reference_hypercolumn.squeeze(0)[:, i, j].unsqueeze(0) for i, j in zip(ref2d[:,0],
                                 ref2d[:,1])]).type(torch.DoubleTensor)
         feature_map_query = query_hypercolumn.squeeze(0).type(torch.DoubleTensor)
@@ -214,23 +217,30 @@ if __name__ == '__main__':
         # print("Rotation matrix is of shape {} and translation {}".format(R_init.size(), t_init.size()))
         # print("feature gradient is of shape {}".format(feature_grad_x.size()))
         # inital projection and plotting
-        # proj2d = torch.mm(R_init, pts3D.T).T + t_init
-        # proj2d = torch.mm(K, proj2d.T).T
-        # proj2d = proj2d/proj2d[:,-1,None]
-        # proj2d = torch.round(proj2d[:,:2]).type(torch.IntTensor)-1
+        proj2d = torch.mm(R_init, pts3D.T).T + t_init
+        proj2d = torch.mm(K, proj2d.T).T
+        proj2d = proj2d/proj2d[:,-1,None]
+        proj2d = torch.round(proj2d[:,:2]).type(torch.IntTensor)-1
 
         # inital points
-        # q_img = cv2.imread(query_images[k])
+        q_img = cv2.imread(query_images[k])
 
-        # for i, p in enumerate(proj2d):
+        for i, p in enumerate(proj2d):
             # print(i, p)
-            # cv2.circle(q_img, tuple(p), 1, (128, 128, 0), 3)
+            cv2.circle(q_img, tuple(p), 1, (128, 128, 0), 3)
 
-        # cv2.imwrite(args.result + 'query_' + str(k) + '_initialization.png', q_img)
+        cv2.imwrite(args.result + 'query_' + str(k) + '_initialization.png', q_img)
 
-        model = sparse3DBA(n_iters = 500, lambda_ = 0.1, verbose=False)
 
-        R, t = model(pts3D, feature_ref, feature_map_query, feature_grad_x, feature_grad_y, K, 1024, 1024,R_init, t_init)
+        # model = sparse3DBA(n_iters = 100, lambda_ = 0.1, verbose=False, ratio_threshold=0.5)
+        
+        #[(startHCI, endHCI, KernelSize, targetdimension, KernelSize), (startHCI, endHCI, KernelSize, targetdimension, blurring size ODD)]
+        #[(0,256,None, None),(256,1024,None,None), ...]
+        # R, t = model.multilevel_optimization([(0,2048,None,None)],pts3D, feature_ref, feature_map_query, feature_grad_x, feature_grad_y, K, 1024, 1024,R_init = R_init, t_init=t_init)
+        
+        model = sparse3DBA(n_iters = 50, lambda_ = 0.1, verbose=False)
+
+        R, t = model(pts3D, feature_ref, feature_map_query, feature_grad_x, feature_grad_y, K, 1024, 1024, R_init, t_init)
 
         result['R'] = R.numpy()
         result['t'] = t.numpy()
@@ -243,20 +253,20 @@ if __name__ == '__main__':
         else:
             track_pickle_path = None
         # final projection and plotting
-        # q_img = cv2.imread(query_images[k])
-        # proj2d = torch.mm(R, pts3D.T).T + t
-        # proj2d = torch.mm(K, proj2d.T).T
-        # proj2d = proj2d/proj2d[:,-1,None]
-        # proj2d = torch.round(proj2d[:,:2]).type(torch.IntTensor)-1
+        q_img = cv2.imread(query_images[k])
+        proj2d = torch.mm(R, pts3D.T).T + t
+        proj2d = torch.mm(K, proj2d.T).T
+        proj2d = proj2d/proj2d[:,-1,None]
+        proj2d = torch.round(proj2d[:,:2]).type(torch.IntTensor)-1
 
-        #for i, p in enumerate(proj2d):
+        for i, p in enumerate(proj2d):
             # print(i, p)
-            # cv2.circle(q_img, tuple(p), 1, (128, 128, 0), 3)
+            cv2.circle(q_img, tuple(p), 1, (128, 128, 0), 3)
 
-        #cv2.imwrite(args.result + 'query_' + str(k) + '_final.png', q_img)
+        cv2.imwrite(args.result + 'query_' + str(k) + '_final.png', q_img)
 
         """Write to DataFrame"""
-        result_frame.loc[k] = [ref_images[k], query_images[k],ref_image_path, query_image_path, pts3D.shape[0], model.best_num_inliers_, model.initial_cost_.item(), model.best_cost_.item(), track_pickle_path, result_path]
+        result_frame.loc[k] = [ref_images[k], query_images[k],ref_image_path, query_image_path, prediction.num_matches, model.best_num_inliers_, model.initial_cost_.item(), model.best_cost_.item(), track_pickle_path, result_path]
         print(result_frame.loc[k,:])
     result_frame.to_csv(args.result + 'summary.csv', sep = ";", index = False)
     del filename_to_pose, filename_to_intrinsics, query_hypercolumn, reference_hypercolumn

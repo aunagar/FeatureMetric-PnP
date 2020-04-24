@@ -3,11 +3,12 @@ from __future__ import print_function, division
 from .utils import (from_homogeneous, to_homogeneous,
                 batched_eye_like, skew_symmetric, so3exp_map)
 
-from .utils import squared_loss, scaled_loss
+from .utils import squared_loss, scaled_loss, sobel_filter
 import torch
 from torch import nn
 import numpy as np
 import pickle
+import kornia
 
 from .model_config import *
 
@@ -123,6 +124,7 @@ def ratio_threshold_feature_errors(feature_errors, threshold = 0.8):
 
     return mask
 
+#@gin.configurable
 class sparse3DBA(nn.Module):
     def __init__(self, n_iters, loss_fn = squared_loss, lambda_ = 0.01,
                 opt_depth = True, verbose = False, ratio_threshold = None, useGPU = False):
@@ -134,6 +136,7 @@ class sparse3DBA(nn.Module):
         self.track_ = {"Rs":[], "ts":[], "costs": [], "points2d":[], "mask":[], "threshold_mask":[]}
         self.use_ratio_test_ = ratio_threshold is not None
         self.ratio_threshold_ = ratio_threshold
+        self.initial_cost_=None
         self.useGPU = useGPU # GPU works but might still need some modifications
 
     def track(self, R,t, cost, points_2d,  mask, threshold_mask):
@@ -143,6 +146,74 @@ class sparse3DBA(nn.Module):
         self.track_["points2d"].append(points_2d)
         self.track_["mask"].append(mask)
         self.track_["threshold_mask"].append(threshold_mask)
+
+    def multilevel_optimization(self, feature_pyramid, pts3D, feature_ref, feature_map_query,
+                    feature_grad_x, feature_grad_y,*args, **kwargs):
+        """
+        feature_pyramid = [(0,256),(256,1024),(1024,-1)]
+        """
+        print(feature_ref.shape)
+        print(feature_map_query.shape)
+        print(feature_grad_x.shape)
+        self.initial_cost_= self.compute_cost(pts3D, kwargs["R_init"], kwargs["t_init"], feature_map_query, feature_ref, *args)
+        channels = feature_map_query.shape[0]
+
+        if feature_pyramid is None:
+            return self.forward(*args,**kwargs)
+        else:
+            for start,end, target_size, kernel_size in feature_pyramid:
+                feature_map_local = feature_map_query[start:end,:,:].unsqueeze(0)
+                
+                if target_size is not None:
+                    feature_map_local = nn.functional.interpolate(feature_map_local, size=(target_size, target_size),mode='bilinear')
+                if kernel_size is not None:
+                    gauss = kornia.filters.get_gaussian_kernel2d((kernel_size, kernel_size), (1.0, 1.0)).unsqueeze(0).unsqueeze(0).repeat(end-start,1,1,1)
+                    feature_map_local = nn.functional.conv2d(feature_map_local, weight=gauss.double(), groups=end-start, padding=1)
+
+                feature_map_local = feature_map_local.squeeze(0)
+
+                if target_size is None and kernel_size is None:
+                    grad_x, grad_y = feature_grad_x[start:end,:,:], feature_grad_y[start:end,:,:]
+                else:
+                    grad_x, grad_y = sobel_filter(feature_map_local)
+                
+                print(feature_map_local.shape)
+
+                    
+
+                kwargs["R_init"], kwargs["t_init"] = self.forward(pts3D, feature_ref[:,start:end], feature_map_local,
+                    grad_x, grad_y,*args,**kwargs)
+                del feature_map_local, grad_x, grad_y
+                print("Cost:", self.compute_cost(pts3D, kwargs["R_init"], kwargs["t_init"], feature_map_query, feature_ref, *args).item())
+        return kwargs["R_init"], kwargs["t_init"]
+
+
+    def compute_cost(self, pts3D, R, t, feature_map_query, feature_ref, K,im_width, im_height):
+        points_3d = torch.mm(R, pts3D.T).T + t
+        points_2d = torch.round(from_homogeneous(torch.mm(K, points_3d.T).T)).type(torch.IntTensor)-1
+
+        # Get the points that are supported within our image size
+        mask_supported = points_within_image(points_2d,im_width, im_height)
+
+        # We only take supported points
+        points_2d_supported = points_2d[mask_supported,:]
+        points_3d_supported = points_3d[mask_supported,:]
+
+        error = indexing_(feature_map_query, torch.flip(points_2d_supported,(1,)), im_width, im_height) - feature_ref[mask_supported]
+
+        if self.use_ratio_test_:
+            cost_full = 0.5*(error**2).sum(-1)
+            threshold_mask = ratio_threshold_feature_errors(cost_full, threshold = self.ratio_threshold_)
+            error = error[threshold_mask,:]
+            points_2d_supported = points_2d_supported[threshold_mask,:]
+            points_3d_supported = points_3d_supported[threshold_mask,:]
+            #mask_supported[mask_supported] = threshold_mask
+            #outliers = threshold_mask.nonzero()
+        else:
+            threshold_mask = None
+        # Cost of Feature error -> SSD
+        cost = 0.5*(error**2).sum(-1)
+        return cost.mean()
 
     def forward(self, pts3D, feature_ref, feature_map_query,
                 feature_grad_x, feature_grad_y, K, im_width, im_height, R_init=None, t_init=None,
@@ -165,6 +236,8 @@ class sparse3DBA(nn.Module):
         if not track:
             track = track_
             pickle_path = pickle_path_
+        else:
+            pickle_path = None
 
         # This might be convenient but might to lead to errors
         if R_init is None: # If R is not initalized, initialize it as identity
@@ -172,7 +245,7 @@ class sparse3DBA(nn.Module):
         else:
             R = R_init
         if t_init is None:
-            t = pts3D.new_tensor([1, 1, 0]).float()
+            t = pts3D.new_tensor([1, 1, 0]).double()
         else:
             t = t_init
 
@@ -237,8 +310,11 @@ class sparse3DBA(nn.Module):
                 num_inliers = points_2d_supported.shape[0]
                 R_best = R
                 t_best = t
-                self.best_num_inliers_ = num_inliers
-                self.initial_cost_ = prev_cost
+
+                self.best_num_inliers_  = num_inliers
+                if self.initial_cost_ is None:
+                    self.initial_cost_ = prev_cost
+
                 if track:
                     self.track(R, t,cost.mean().item(), points_2d, mask_supported, threshold_mask)
             if self.verbose:
