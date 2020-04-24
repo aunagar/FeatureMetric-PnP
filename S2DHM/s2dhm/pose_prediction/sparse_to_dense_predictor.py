@@ -12,13 +12,14 @@ from pose_prediction import exhaustive_search
 from visualization import plot_correspondences
 
 from pose_prediction import optimizer_PnP
-
+import pandas as pd
+import pickle
 
 @gin.configurable
 class SparseToDensePredictor(predictor.PosePredictor):
     """Sparse-to-dense Predictor Class.
     """
-    def __init__(self, top_N: int, **kwargs):
+    def __init__(self, top_N: int, output_file: str, **kwargs): #Revert here
         """Initialize class attributes.
 
         Args:
@@ -27,12 +28,14 @@ class SparseToDensePredictor(predictor.PosePredictor):
         """
         super().__init__(**kwargs)
         self._top_N = top_N
+        self.output_file = output_file
         self._filename_to_pose = \
             self._dataset.data['reconstruction_data'].filename_to_pose
         self._filename_to_intrinsics = \
             self._dataset.data['filename_to_intrinsics']
         self._filename_to_local_reconstruction = \
             self._dataset.data['filename_to_local_reconstruction']
+        print(self.output_file)
 
     def _compute_sparse_reference_hypercolumn(self, reference_image,
                                               local_reconstruction):
@@ -57,10 +60,13 @@ class SparseToDensePredictor(predictor.PosePredictor):
         output = []
         tqdm_bar = tqdm(enumerate(self._ranks.T), total=self._ranks.shape[1],
                         unit='images', leave=True)
-        for i, rank in tqdm_bar:
+        # Pandas DF
+        result_frame = pd.DataFrame(columns=["reference_image_origin", "query_image_origin","num_initial_matches", "num_final_matches", "initial_cost", "final_cost","track_pickle_path"])
+        cnt = 0
+        for i, rank in tqdm_bar: #For each query image
 
             # Compute the query dense hypercolumn
-            query_image = self._dataset.data['query_image_names'][i]
+            query_image = self._dataset.data['query_image_names'][i] #Name
             if query_image not in self._filename_to_intrinsics:
                 continue
             query_dense_hypercolumn, _ = self._network.compute_hypercolumn(
@@ -70,7 +76,7 @@ class SparseToDensePredictor(predictor.PosePredictor):
                 (channels, -1))
             predictions = []
 
-            for j in rank[:self._top_N]:
+            for j in rank[:self._top_N]: #For n reference images
 
                 # Compute dense reference hypercolumns
                 nearest_neighbor = self._dataset.data['reference_image_names'][j]
@@ -101,7 +107,7 @@ class SparseToDensePredictor(predictor.PosePredictor):
                     points_3D=points_3D,
                     intrinsics=intrinsics,
                     distortion_coefficients=distortion_coefficients,
-                    reference_filename=nearest_neighbor,
+                    reference_filename=nearest_neighbor, #Reference filename
                     reference_2D_points=local_reconstruction.points_2D[mask],
                     reference_keypoints=None)
 
@@ -113,17 +119,28 @@ class SparseToDensePredictor(predictor.PosePredictor):
                         predictions.append(prediction)
                 else:
                     predictions.append(prediction)
-
+            
+            
             if len(predictions):
                 export, best_prediction = self._choose_best_prediction(
                     predictions, query_image)
+                #I know best query-reference
                 output.append(export.copy())
                 if best_prediction.success:
+                    
                     print("running optimization for query = {} and reference = {}".format(query_image,
                                                                     best_prediction.reference_filename) )
-                    t, quaterion = optimizer_PnP.optimize(query_dense_hypercolumn.view(channels, width, height)[None, ...],
+                    t, quaterion, model = optimizer_PnP.optimize(query_dense_hypercolumn.view(channels, width, height)[None, ...],
                                         self._network, best_prediction, intrinsics)
+                    # Add row to df with track file
+                    track_pickle_path=self.output_file+"track_"+str(cnt)+".p"
+                    pickle.dump(model.track_, open(track_pickle_path,"wb"))
                     export[1:5], export[5:] = quaterion, t
+
+                    result_frame.loc[cnt] = [best_prediction.reference_filename, query_image, best_prediction.num_matches, model.best_num_inliers_, model.initial_cost_.item(), model.best_cost_.item(), track_pickle_path]
+                    print(result_frame.loc[cnt,:])
+                    result_frame.to_csv(self.output_file +"summary.csv", sep=";")
+                    cnt+=1
                 else:
                     print("RANSAC PnP failed for {}, and we predicted pose for nearest reference image {}.".format(query_image, reference_filename))
 
@@ -150,7 +167,7 @@ class SparseToDensePredictor(predictor.PosePredictor):
                 tqdm_bar.set_description(
                     "[{} inliers]".format(best_prediction.num_inliers))
                 tqdm_bar.refresh()
-
+        result_frame.to_csv(self.output_file +"summary.csv", sep=";")
         return output
 
     @property

@@ -3,11 +3,12 @@ from __future__ import print_function, division
 from .utils import (from_homogeneous, to_homogeneous,
                 batched_eye_like, skew_symmetric, so3exp_map)
 
-from .utils import squared_loss, scaled_loss
+from .utils import squared_loss, scaled_loss, sobel_filter
 import torch
 from torch import nn
 import numpy as np
 import pickle
+import kornia
 
 from .model_config import *
 
@@ -38,15 +39,34 @@ def optimizer_step(g, H, lambda_=0, lr = 1.):
         H: batched hessian tensor of size (..., N, N).
         lambda_: damping factor for LM (use GN if lambda_=0).
     """
+#    start = torch.cuda.Event(enable_timing=True)
+#    end = torch.cuda.Event(enable_timing=True)
     if lambda_:  # LM instead of GN
         D = (H.diagonal(dim1=-2, dim2=-1) + 1e-9).diag_embed()
         H = H + D*lambda_
     try:
-        P = torch.inverse(H)
+#        start.record()
+        H_LU, pivots = torch.lu(H)
+        # P = torch.inverse(H)
+#        end.record()
+#        torch.cuda.synchronize()
+#        print("Preprocessing time: %lf" % (start.elapsed_time(end)))
     except RuntimeError as e:
         logging.warning(f'Determinant: {torch.det(H)}')
         raise e
-    delta = -lr * (P @ g[..., None])[..., 0] # generally learning rate does not make sense for second order methods
+
+#    start.record()
+    x = torch.lu_solve(g[..., None], H_LU, pivots)
+    delta = -lr * x[..., 0] # generally learning rate does not make sense for second order methods
+    # delta = -lr * (P @ g[..., None])[..., 0] # generally learning rate does not make sense for second order methods
+#    end.record()
+#    torch.cuda.synchronize()
+#    print("Solution time: %lf" % (start.elapsed_time(end)))
+#    
+#    print(H.device)
+#    print(H_LU.device)
+#    print(delta.device)
+
     return delta
 
 def indexing_(feature_map, points, width, height):
@@ -60,11 +80,11 @@ def indexing_(feature_map, points, width, height):
     @imsize: optional: tuple(height, width)
 
     outputs: 
-    features : features for the points (NxC)
+    features : features for the points (NxC) 
     '''
 
     points_row = (points[:,0].double() * feature_map.shape[-2] / height).floor().type(torch.ShortTensor) #Should be short
-    points_col =(points[:,1].double() * feature_map.shape[-1] / width).floor().type(torch.ShortTensor)
+    points_col = (points[:,1].double() * feature_map.shape[-1] / width).floor().type(torch.ShortTensor)
 
     features = []
     for i,j in zip(points_row, points_col):
@@ -104,18 +124,20 @@ def ratio_threshold_feature_errors(feature_errors, threshold = 0.8):
 
     return mask
 
+#@gin.configurable
 class sparse3DBA(nn.Module):
     def __init__(self, n_iters, loss_fn = squared_loss, lambda_ = 0.01,
-                opt_depth=True, verbose=False, ratio_threshold = None):
+                opt_depth = True, verbose = False, ratio_threshold = None, useGPU = False):
         super().__init__()
         self.iterations = n_iters
         self.loss_fn = loss_fn
         self.verbose = verbose
         self.lambda_ = lambda_
-        self.track_ = {"Rs":[],"ts":[], "costs": [], "points2d":[], "mask":[], "threshold_mask":[]}
+        self.track_ = {"Rs":[], "ts":[], "costs": [], "points2d":[], "mask":[], "threshold_mask":[]}
         self.use_ratio_test_ = ratio_threshold is not None
         self.ratio_threshold_ = ratio_threshold
-
+        self.initial_cost_=None
+        self.useGPU = useGPU # GPU works but might still need some modifications
 
     def track(self, R,t, cost, points_2d,  mask, threshold_mask):
         self.track_["Rs"].append(R)
@@ -124,6 +146,74 @@ class sparse3DBA(nn.Module):
         self.track_["points2d"].append(points_2d)
         self.track_["mask"].append(mask)
         self.track_["threshold_mask"].append(threshold_mask)
+
+    def multilevel_optimization(self, feature_pyramid, pts3D, feature_ref, feature_map_query,
+                    feature_grad_x, feature_grad_y,*args, **kwargs):
+        """
+        feature_pyramid = [(0,256),(256,1024),(1024,-1)]
+        """
+        print(feature_ref.shape)
+        print(feature_map_query.shape)
+        print(feature_grad_x.shape)
+        self.initial_cost_= self.compute_cost(pts3D, kwargs["R_init"], kwargs["t_init"], feature_map_query, feature_ref, *args)
+        channels = feature_map_query.shape[0]
+
+        if feature_pyramid is None:
+            return self.forward(*args,**kwargs)
+        else:
+            for start,end, target_size, kernel_size in feature_pyramid:
+                feature_map_local = feature_map_query[start:end,:,:].unsqueeze(0)
+                
+                if target_size is not None:
+                    feature_map_local = nn.functional.interpolate(feature_map_local, size=(target_size, target_size),mode='bilinear')
+                if kernel_size is not None:
+                    gauss = kornia.filters.get_gaussian_kernel2d((kernel_size, kernel_size), (1.0, 1.0)).unsqueeze(0).unsqueeze(0).repeat(end-start,1,1,1)
+                    feature_map_local = nn.functional.conv2d(feature_map_local, weight=gauss.double(), groups=end-start, padding=1)
+
+                feature_map_local = feature_map_local.squeeze(0)
+
+                if target_size is None and kernel_size is None:
+                    grad_x, grad_y = feature_grad_x[start:end,:,:], feature_grad_y[start:end,:,:]
+                else:
+                    grad_x, grad_y = sobel_filter(feature_map_local)
+                
+                print(feature_map_local.shape)
+
+                    
+
+                kwargs["R_init"], kwargs["t_init"] = self.forward(pts3D, feature_ref[:,start:end], feature_map_local,
+                    grad_x, grad_y,*args,**kwargs)
+                del feature_map_local, grad_x, grad_y
+                print("Cost:", self.compute_cost(pts3D, kwargs["R_init"], kwargs["t_init"], feature_map_query, feature_ref, *args).item())
+        return kwargs["R_init"], kwargs["t_init"]
+
+
+    def compute_cost(self, pts3D, R, t, feature_map_query, feature_ref, K,im_width, im_height):
+        points_3d = torch.mm(R, pts3D.T).T + t
+        points_2d = torch.round(from_homogeneous(torch.mm(K, points_3d.T).T)).type(torch.IntTensor)-1
+
+        # Get the points that are supported within our image size
+        mask_supported = points_within_image(points_2d,im_width, im_height)
+
+        # We only take supported points
+        points_2d_supported = points_2d[mask_supported,:]
+        points_3d_supported = points_3d[mask_supported,:]
+
+        error = indexing_(feature_map_query, torch.flip(points_2d_supported,(1,)), im_width, im_height) - feature_ref[mask_supported]
+
+        if self.use_ratio_test_:
+            cost_full = 0.5*(error**2).sum(-1)
+            threshold_mask = ratio_threshold_feature_errors(cost_full, threshold = self.ratio_threshold_)
+            error = error[threshold_mask,:]
+            points_2d_supported = points_2d_supported[threshold_mask,:]
+            points_3d_supported = points_3d_supported[threshold_mask,:]
+            #mask_supported[mask_supported] = threshold_mask
+            #outliers = threshold_mask.nonzero()
+        else:
+            threshold_mask = None
+        # Cost of Feature error -> SSD
+        cost = 0.5*(error**2).sum(-1)
+        return cost.mean()
 
     def forward(self, pts3D, feature_ref, feature_map_query,
                 feature_grad_x, feature_grad_y, K, im_width, im_height, R_init=None, t_init=None,
@@ -146,14 +236,16 @@ class sparse3DBA(nn.Module):
         if not track:
             track = track_
             pickle_path = pickle_path_
+        else:
+            pickle_path = None
 
         # This might be convenient but might to lead to errors
-        if R_init is None: # If R is not inialized, initialize it as identity
+        if R_init is None: # If R is not initalized, initialize it as identity
             R = torch.eye(3).to(pts3D)
         else:
             R = R_init
         if t_init is None:
-            t = pts3D.new_tensor([1, 1, 0]).float()
+            t = pts3D.new_tensor([1, 1, 0]).double()
         else:
             t = t_init
 
@@ -164,14 +256,33 @@ class sparse3DBA(nn.Module):
 
         #no_outliers = torch.new_empty((0,1))
 
+        # start = torch.cuda.Event(enable_timing=True)
+        # end = torch.cuda.Event(enable_timing=True)
+        # start.record()
+        # end.record()
+        # torch.cuda.synchronize()
+        # print("iter %d: %f" % (i, start.elapsed_time(end)))
+
+        if self.useGPU and torch.cuda.is_available(): # Move stuff to GPU
+            print("Running Sparse3DBA.forward on GPU")
+            K, R, t, pts3D = K.cuda(), R.cuda(), t.cuda(), pts3D.cuda()
+            feature_map_query, feature_ref = feature_map_query.cuda(), feature_ref.cuda()
+            feature_grad_x, feature_grad_y = feature_grad_x.cuda(), feature_grad_y.cuda()
+        else:
+            print("Running Sparse3DBA.forward on CPU")
+
         for i in range(self.iterations):
 
-            # project all points using current R and T on image
+            # project all points using current R and T on image 
             points_3d = torch.mm(R, pts3D.T).T + t
-            points_2d = torch.round(from_homogeneous(torch.mm(K, points_3d.T).T)).type(torch.IntTensor)-1
+
+            if self.useGPU:                
+                points_2d = torch.round(from_homogeneous(torch.mm(K, points_3d.T).T)).type(torch.cuda.IntTensor)-1
+            else:
+                points_2d = torch.round(from_homogeneous(torch.mm(K, points_3d.T).T)).type(torch.IntTensor)-1
 
             # Get the points that are supported within our image size
-            mask_supported = points_within_image(points_2d,im_width, im_height)
+            mask_supported = points_within_image(points_2d, im_width, im_height)
 
             # We only take supported points
             points_2d_supported = points_2d[mask_supported,:]
@@ -185,23 +296,25 @@ class sparse3DBA(nn.Module):
                 error = error[threshold_mask,:]
                 points_2d_supported = points_2d_supported[threshold_mask,:]
                 points_3d_supported = points_3d_supported[threshold_mask,:]
-                #mask_supported[mask_supported] = threshold_mask
-                #outliers = threshold_mask.nonzero()
+                # mask_supported[mask_supported] = threshold_mask
+                # outliers = threshold_mask.nonzero()
             else:
                 threshold_mask = None
             # Cost of Feature error -> SSD
             cost = 0.5*(error**2).sum(-1)
 
-
-            #Base Case
+            # Base Case
             if i == 0:
                 prev_cost = cost.mean(-1)
                 self.best_cost_ = prev_cost
                 num_inliers = points_2d_supported.shape[0]
                 R_best = R
                 t_best = t
+
                 self.best_num_inliers_  = num_inliers
-                self.initial_cost_ = prev_cost
+                if self.initial_cost_ is None:
+                    self.initial_cost_ = prev_cost
+
                 if track:
                     self.track(R, t,cost.mean().item(), points_2d, mask_supported, threshold_mask)
             if self.verbose:
@@ -216,7 +329,6 @@ class sparse3DBA(nn.Module):
             J_p_T = torch.cat([
                 batched_eye_like(points_3d_supported, 3), -skew_symmetric(points_3d_supported)], -1)
             # print("J_p_T is  ", J_p_T)
-
 
             # Gradient of pixel point px with respect to 3D point P
             # Derived from camera projection equation: px = K * [R|t] * P
@@ -240,7 +352,7 @@ class sparse3DBA(nn.Module):
             # print("J_f_px is ", J_f_px)
             # gradient of feature error w.r.t. camera matrix T (including K)
             J_e_T = J_f_px @ J_px_p @ J_p_T
-
+            
             #Grad = J_e_T * error
             Grad = torch.einsum('bij,bi->bj', J_e_T, error)
             Grad = Grad.sum(-2)  # Grad was ... x N x 6
@@ -249,10 +361,10 @@ class sparse3DBA(nn.Module):
             
             Hess = torch.einsum('ijk,ijl->ikl', J, J) # Approximate Hessian = J.T * J
             Hess = Hess.sum(-3)  # Hess was ... x N x 6 x 6
-
+ 
             # finding gradient step using LM or Newton method
             delta = optimizer_step(Grad, Hess, lambda_, lr = lr)
-
+            
             # delta = -lr*Grad
             if torch.isnan(delta).any():
                 logging.warning('NaN detected, exit')
@@ -273,7 +385,10 @@ class sparse3DBA(nn.Module):
 
             new_points_3d = torch.mm(R_new, pts3D.T).T + t_new
             # Maybe there is some minor problem (+-1 pixel due to rounding!)
-            new_points_2d = torch.round(from_homogeneous(torch.mm(K, new_points_3d.T).T)).type(torch.IntTensor) - 1
+            if self.useGPU:                
+                new_points_2d = torch.round(from_homogeneous(torch.mm(K, new_points_3d.T).T)).type(torch.cuda.IntTensor) - 1
+            else:
+                new_points_2d = torch.round(from_homogeneous(torch.mm(K, new_points_3d.T).T)).type(torch.IntTensor) - 1
             
             # Get mask for new points
             mask_supported = points_within_image(new_points_2d, im_width, im_height)
@@ -281,7 +396,7 @@ class sparse3DBA(nn.Module):
             # Mask new points
             new_points_2d_supported = new_points_2d[mask_supported,:]
             new_points_3d_supported = new_points_3d[mask_supported,:]
-
+            
             # Check new error
             new_error = indexing_(feature_map_query, torch.flip(new_points_2d_supported, (1,)), im_width, im_height) - feature_ref[mask_supported]
             
@@ -323,5 +438,9 @@ class sparse3DBA(nn.Module):
             R, t = R_new, t_new # Actually we should write the result only if the cost decreased!
 
         if track and (pickle_path is not None):
-            pickle.dump(self.track_, open(pickle_path, "wb"))
-        return R_best, t_best
+            pickle.dump(self.track_, open(pickle_path, "wb")) 
+
+        if self.useGPU:
+            return R_best.cpu(), t_best.cpu()
+        else:
+            return R_best, t_best

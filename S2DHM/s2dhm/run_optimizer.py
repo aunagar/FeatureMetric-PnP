@@ -69,7 +69,17 @@ def get_pose_predictor(pose_predictor_cls: predictor.PosePredictor,
 if __name__ == '__main__':
     args = parser.parse_args()
     DATA_PATH = args.dataset
-    result_frame = pd.DataFrame(columns=["reference_image_origin", "query_image_origin","reference_image_path","query_image_path","num_initial_matches", "num_final_matches", "initial_cost", "final_cost","track_pickle_path","result_path"])
+    result_frame = pd.DataFrame(columns=[
+        "reference_image_origin",
+        "query_image_origin",
+        "reference_image_path",
+        "query_image_path",
+        "num_initial_matches",
+        "num_final_matches",
+        "initial_cost",
+        "final_cost",
+        "track_pickle_path",
+        "result_path"])
 
     # put triangulation file in the same folder as robotcar data
     triangulation_file = DATA_PATH + '/data/triangulation/robotcar_triangulation.npz'
@@ -95,47 +105,47 @@ if __name__ == '__main__':
     #            'overcast-reference/rear/1417177976603612.jpg',
     #           'overcast-reference/rear/1417177990601642.jpg']
     
-    ref_images = ['night-rain/rear/1418841346403822.jpg',
-                  'night-rain/rear/1418841677987976.jpg',
-                  'night-rain/rear/1418841403271814.jpg',
-                  'night-rain/rear/1418840689734892.jpg',
-                  'night-rain/rear/1418840689859877.jpg',
-                  'night-rain/rear/1418841402646891.jpg',
-                  'night-rain/rear/1418840689484924.jpg',
-                  'night-rain/rear/1418841708859176.jpg',
-                  'night-rain/rear/1418840728855054.jpg',
-                  'night-rain/rear/1418840746477876.jpg',
-                  'night-rain/rear/1418840690109846.jpg',
-                  'night-rain/rear/1418840729479977.jpg',
-                  'night-rain/rear/1418841707859299.jpg',
-                  'night-rain/rear/1418840728730070.jpg',
-                  'night-rain/rear/1418840690234831.jpg',
-                  'night-rain/rear/1418841595623116.jpg',
-                  'night-rain/rear/1418841295785077.jpg',
-                  'night-rain/rear/1418840761601006.jpg',
-                  'night-rain/rear/1418841346653791.jpg',
-                  'night-rain/rear/1418840815469348.jpg']
+    ref_images = ['overcast-reference/rear/1417177002559198.jpg',
+                 'overcast-reference/rear/1417178011962261.jpg',
+                 'overcast-reference/rear/1417178029141715.jpg',
+                 'overcast-reference/rear/1417176982562024.jpg',
+                 'overcast-reference/rear/1417177820625573.jpg',
+                 'overcast-reference/rear/1417178029141715.jpg',
+                 'overcast-reference/rear/1417176981834751.jpg',
+                 'overcast-reference/rear/1417178027960009.jpg',
+                 'overcast-reference/rear/1417178468625282.jpg',
+                 'overcast-reference/rear/1417178029141715.jpg',
+                 'overcast-reference/rear/1417178379183355.jpg',
+                 'overcast-reference/rear/1417178590971711.jpg',
+                 'overcast-reference/rear/1417178698774813.jpg',
+                 'overcast-reference/rear/1417178010326116.jpg',
+                 'overcast-reference/rear/1417176931296517.jpg',
+                 'overcast-reference/rear/1417176931750953.jpg',
+                 'overcast-reference/rear/1417177647377229.jpg',
+                 'overcast-reference/rear/1417177964605301.jpg',
+                 'overcast-reference/rear/1417178379183355.jpg',
+                 'overcast-reference/rear/1417177167899474.jpg']
     
-    query_images = ['overcast-reference/rear/1417177821443708.jpg',
-                  'overcast-reference/rear/1417178379637791.jpg',
-                  'overcast-reference/rear/1417177965150722.jpg',
-                  'overcast-reference/rear/1417176981834751.jpg',
-                  'overcast-reference/rear/1417176982016599.jpg',
-                  'overcast-reference/rear/1417177964241727.jpg',
-                  'overcast-reference/rear/1417176981834751.jpg',
-                  'overcast-reference/rear/1417178468625282.jpg',
-                  'overcast-reference/rear/1417177029555384.jpg',
-                  'overcast-reference/rear/1417177069186036.jpg',
-                  'overcast-reference/rear/1417176982016599.jpg',
-                  'overcast-reference/rear/1417177030646106.jpg',
-                  'overcast-reference/rear/1417178467988996.jpg',
-                  'overcast-reference/rear/1417177029100823.jpg',
-                  'overcast-reference/rear/1417176982562024.jpg',
-                  'overcast-reference/rear/1417178029141715.jpg',
-                  'overcast-reference/rear/1417177630834182.jpg',
-                  'overcast-reference/rear/1417177088547051.jpg',
-                  'overcast-reference/rear/1417177821443708.jpg',
-                  'overcast-reference/rear/1417177165990619.jpg']
+    query_images = ['night-rain/rear/1418840703983130.jpg',
+                 'night-rain/rear/1418841610371301.jpg',
+                 'night-rain/rear/1418841595623116.jpg',
+                 'night-rain/rear/1418840690234831.jpg',
+                 'night-rain/rear/1418841345903884.jpg',
+                 'night-rain/rear/1418841595123179.jpg',
+                 'night-rain/rear/1418840689734892.jpg',
+                 'night-rain/rear/1418841595873086.jpg',
+                 'night-rain/rear/1418841708859176.jpg',
+                 'night-rain/rear/1418841594873210.jpg',
+                 'night-rain/rear/1418841677363052.jpg',
+                 'night-rain/rear/1418841843342625.jpg',
+                 'night-rain/rear/1418841951079368.jpg',
+                 'night-rain/rear/1418841609996348.jpg',
+                 'night-rain/rear/1418840648989932.jpg',
+                 'night-rain/rear/1418840649364886.jpg',
+                 'night-rain/rear/1418841311158167.jpg',
+                 'night-rain/rear/1418841403146829.jpg',
+                 'night-rain/rear/1418841677238068.jpg',
+                 'night-rain/rear/1418840816969162.jpg']
 
 
     if args.ref_image:
@@ -167,7 +177,8 @@ if __name__ == '__main__':
     s2dPnP = SparseToDenseFeatureMetricPnP(filename_to_pose, filename_to_intrinsics,
             filename_to_local_reconstruction, net)
 
-    for k in range(len(query_images)):
+    # Run only for one image to test optimizer
+    for k in [1]: #range(len(query_images)):
         prediction, query_hypercolumn, reference_hypercolumn = s2dPnP.run(query_images[k], ref_images[k])
         
         # print("Hypercolumn size is {}".format(query_hypercolumn.shape))
@@ -179,7 +190,7 @@ if __name__ == '__main__':
         q_img = cv2.imread(query_images[k])
         r_img = cv2.imread(ref_images[k])
 
-        query_image_path =args.result + 'query_'+ str(k) + '_raw.png'
+        query_image_path = args.result + 'query_'+ str(k) + '_raw.png'
         ref_image_path = args.result + 'reference_'+ str(k) + '_raw.png'
 
         cv2.imwrite(query_image_path, q_img)
@@ -227,10 +238,14 @@ if __name__ == '__main__':
             # cv2.circle(q_img, tuple(p), 1, (128, 128, 0), 3)
 
         # cv2.imwrite(args.result + 'query_' + str(k) + '_initialization.png', q_img)
+        
+        model = sparse3DBA(n_iters = 5, lambda_ = 0.1, verbose=False)
+        
+        print("************************* Start model *************************")
 
-        model = sparse3DBA(n_iters = 500, lambda_ = 0.1, verbose=False)
+        R, t = model(pts3D, feature_ref, feature_map_query, feature_grad_x, feature_grad_y, K, 1024, 1024, R_init, t_init)
 
-        R, t = model(pts3D, feature_ref, feature_map_query, feature_grad_x, feature_grad_y, K, 1024, 1024,R_init, t_init)
+        print("************************** End model **************************")
 
         result['R'] = R.numpy()
         result['t'] = t.numpy()
@@ -256,7 +271,17 @@ if __name__ == '__main__':
         #cv2.imwrite(args.result + 'query_' + str(k) + '_final.png', q_img)
 
         """Write to DataFrame"""
-        result_frame.loc[k] = [ref_images[k], query_images[k],ref_image_path, query_image_path, pts3D.shape[0], model.best_num_inliers_, model.initial_cost_.item(), model.best_cost_.item(), track_pickle_path, result_path]
+        result_frame.loc[k] = [
+                ref_images[k],
+                query_images[k],
+                ref_image_path,
+                query_image_path,
+                pts3D.shape[0],
+                model.best_num_inliers_,
+                model.initial_cost_.item(),
+                model.best_cost_.item(),
+                track_pickle_path,
+                result_path]
         print(result_frame.loc[k,:])
     result_frame.to_csv(args.result + 'summary.csv', sep = ";", index = False)
     del filename_to_pose, filename_to_intrinsics, query_hypercolumn, reference_hypercolumn
