@@ -4,7 +4,7 @@ import cv2
 import matplotlib.pyplot as plt
 
 
-def create_frames_with_camera_pose(rgb_img,R_list, t_list, cost_list, point_list, dpi=160, cost_plot_height=300):
+def create_frames_with_camera_pose(rgb_img,R_list, t_list, cost_list, point_list, dpi=160, cost_plot_height=300, mask_inlier_list = None):
     # Create a list of images, size (H+cost_plot_height)x2*W
     # Takes some time (~ half a minute with n_iters=100 and image size 1024x1024)
     # Change DPI and draw parameters(radius, thickness) as you like
@@ -66,6 +66,9 @@ def create_frames_with_camera_pose(rgb_img,R_list, t_list, cost_list, point_list
             cv2.circle(img_int, tuple(pts[0,j,:]), 4, (0,255,0), -1) 
             # Draw current point
             cv2.circle(img_int, tuple(pts[i,j,:]), 4, (0,0,255), -1) 
+            # Draw Inliers
+            if mask_inlier_list is not None and mask_inlier_list[i,j]:
+                cv2.circle(img_int, tuple(pts[i,j,:]), 4, (255,0,0), -1) 
             # Draw Label
             cv2.putText(img_int, label, (20,20), cv2.FONT_HERSHEY_PLAIN, 1, (0,0,255), 2)
 
