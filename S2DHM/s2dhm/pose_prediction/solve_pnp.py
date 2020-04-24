@@ -91,9 +91,9 @@ def solve_pnp(points_2D: np.ndarray,
             success=True,
             num_matches=points_2D.shape[0],
             num_inliers=len(inliers),
-            reference_inliers=reference_2D_points[np.squeeze(inliers)],
+            reference_inliers=reference_2D_points[np.squeeze(inliers)], #Reset
             query_inliers=np.squeeze(points_2D[np.squeeze(inliers)]),
-            points_3d = points_3D[np.squeeze(inliers)],
+            points_3d = points_3D[np.squeeze(inliers)],  #Reset
             quaternion=quaternion,
             matrix=matrix,
             reference_filename=reference_filename,

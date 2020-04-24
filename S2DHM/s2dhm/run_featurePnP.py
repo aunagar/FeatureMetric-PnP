@@ -168,6 +168,7 @@ if __name__ == '__main__':
             filename_to_local_reconstruction, net)
 
     for k in range(len(query_images)):
+        #for k in range(1):
         prediction, query_hypercolumn, reference_hypercolumn = s2dPnP.run(query_images[k], ref_images[k])
         
         # print("Hypercolumn size is {}".format(query_hypercolumn.shape))
@@ -228,10 +229,10 @@ if __name__ == '__main__':
 
         # cv2.imwrite(args.result + 'query_' + str(k) + '_initialization.png', q_img)
 
-        model = sparse3DBA(n_iters = 500, lambda_ = 0.1, verbose=False)
-
-        R, t = model(pts3D, feature_ref, feature_map_query, feature_grad_x, feature_grad_y, K, 1024, 1024,R_init, t_init)
-
+        model = sparse3DBA(n_iters = 100, lambda_ = 0.1, verbose=False, ratio_threshold=0.5)
+        
+        R, t = model.multilevel_optimization([(0,2048,None,None)],pts3D, feature_ref, feature_map_query, feature_grad_x, feature_grad_y, K, 1024, 1024,R_init = R_init, t_init=t_init)
+        
         result['R'] = R.numpy()
         result['t'] = t.numpy()
         result_path = args.result +str(k) + "_result.p"
@@ -256,7 +257,7 @@ if __name__ == '__main__':
         #cv2.imwrite(args.result + 'query_' + str(k) + '_final.png', q_img)
 
         """Write to DataFrame"""
-        result_frame.loc[k] = [ref_images[k], query_images[k],ref_image_path, query_image_path, pts3D.shape[0], model.best_num_inliers_, model.initial_cost_.item(), model.best_cost_.item(), track_pickle_path, result_path]
+        result_frame.loc[k] = [ref_images[k], query_images[k],ref_image_path, query_image_path, prediction.num_matches, model.best_num_inliers_, model.initial_cost_.item(), model.best_cost_.item(), track_pickle_path, result_path]
         print(result_frame.loc[k,:])
     result_frame.to_csv(args.result + 'summary.csv', sep = ";", index = False)
     del filename_to_pose, filename_to_intrinsics, query_hypercolumn, reference_hypercolumn
