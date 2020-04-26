@@ -19,6 +19,7 @@ from datasets import base_dataset
 from pose_prediction.sparse_to_dense_featuremetric_predictor import SparseToDenseFeatureMetricPnP
 from datasets import dataload_helpers as data_helpers
 
+from visualization.visualize_hc import visualize_hc
 # this is a hack
 sys.path.insert(0, os.path.abspath('../../'))
 
@@ -197,6 +198,15 @@ if __name__ == '__main__':
             cv2.circle(q_img, tuple(p), 1, (128, 128, 0), 3)
 
         cv2.imwrite(args.result + 'query_'+ str(k) + '_detection.png', q_img)
+
+        #### Hypercolumn plotting #####
+        ref_p = prediction.reference_inliers[0]
+        scale = reference_hypercolumn.shape[-1]/r_img.shape[1]
+        ref_p = (scale*ref_p).astype(int)
+        query_p = (scale*prediction.query_inliers[0]).astype(int)
+        r_hc = reference_hypercolumn[:, :, ref_p[1], ref_p[0]].cpu()
+        visualize_hc(r_hc, query_hypercolumn.squeeze(0).cpu(), query_p, args.result + 'hc_'+str(k) + '.png')
+        ###############################
 
         pts3D = torch.from_numpy(prediction.points_3d.reshape(-1,3))
         scale = reference_hypercolumn.shape[-1]/r_img.shape[1]

@@ -5,6 +5,7 @@ import pose_prediction.optimizer_PnP
 
 get_pose_predictor.pose_predictor_cls = @SparseToDensePredictor
 SparseToDensePredictor.top_N = 30
+SparseToDensePredictor.track = False # do you want to track all the points during optimization?
 
 # PnP Parameters
 solve_pnp.reprojection_threshold = 12

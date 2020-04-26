@@ -19,7 +19,7 @@ import pickle
 class SparseToDensePredictor(predictor.PosePredictor):
     """Sparse-to-dense Predictor Class.
     """
-    def __init__(self, top_N: int, output_file: str, **kwargs): #Revert here
+    def __init__(self, top_N: int, output_file: str, track: bool, **kwargs): #Revert here
         """Initialize class attributes.
 
         Args:
@@ -35,6 +35,7 @@ class SparseToDensePredictor(predictor.PosePredictor):
             self._dataset.data['filename_to_intrinsics']
         self._filename_to_local_reconstruction = \
             self._dataset.data['filename_to_local_reconstruction']
+        self.track = track
         print(self.output_file)
 
     def _compute_sparse_reference_hypercolumn(self, reference_image,
@@ -124,24 +125,32 @@ class SparseToDensePredictor(predictor.PosePredictor):
             if len(predictions):
                 export, best_prediction = self._choose_best_prediction(
                     predictions, query_image)
-                #I know best query-reference
+                #please note we are appending the pose twice into the output
+                # before submission remember to remove all the odd raws
                 output.append(export.copy())
                 if best_prediction.success:
                     
                     print("running optimization for query = {} and reference = {}".format(query_image,
                                                                     best_prediction.reference_filename) )
                     t, quaterion, model = optimizer_PnP.optimize(query_dense_hypercolumn.view(channels, width, height)[None, ...],
-                                        self._network, best_prediction, intrinsics)
-                    # Add row to df with track file
-                    track_pickle_path=self.output_file+"track_"+str(cnt)+".p"
-                    pickle.dump(model.track_, open(track_pickle_path,"wb"))
-                    export[1:5], export[5:] = quaterion, t
+                                        net = self._network, prediction = best_prediction, K = intrinsics, track = self.track)
+                    
+                    # track file
+                    if self.track:
+                        track_pickle_path=self.output_file+"track_"+str(cnt)+".p"
+                        pickle.dump(model.track_, open(track_pickle_path,"wb"))
+                    else:
+                        track_pickle_path = None
 
+                    export[1:5], export[5:] = quaterion, t
+                    # Add row to df with track file
                     result_frame.loc[cnt] = [best_prediction.reference_filename, query_image, best_prediction.num_matches, model.best_num_inliers_, model.initial_cost_.item(), model.best_cost_.item(), track_pickle_path]
-                    print(result_frame.loc[cnt,:])
-                    result_frame.to_csv(self.output_file +"summary.csv", sep=";")
+                    # print(result_frame.loc[cnt,:])
+                    # result_frame.to_csv(self.output_file +"summary.csv", sep=";")
                     cnt+=1
                 else:
+                    result_frame.loc[cnt] = [best_prediction.reference_filename, query_image, None, None, None, None, None]
+                    cnt+=1
                     print("RANSAC PnP failed for {}, and we predicted pose for nearest reference image {}.".format(query_image, reference_filename))
 
                 if self._log_images:

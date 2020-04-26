@@ -11,7 +11,7 @@ from BA.featureBA.src.model import sparse3DBA
 from BA.featureBA.src.utils import sobel_filter
 
 @gin.configurable
-def optimize(query_hypercolumns, net, prediction, K, image_shape):
+def optimize(query_hypercolumns, net, prediction, K, image_shape, track = False):
     
     print("Initial : {}".format(list(prediction.quaternion) + list(prediction.matrix[:3,3])))
 
@@ -30,9 +30,9 @@ def optimize(query_hypercolumns, net, prediction, K, image_shape):
     R_init, t_init = torch.from_numpy(T_init[:3, :3]), torch.from_numpy(T_init[:3,3])
     feature_grad_x, feature_grad_y = sobel_filter(feature_map_query)
 
-    model = sparse3DBA(n_iters = 100, lambda_ = 0.1, verbose=False, ratio_threshold=None)
+    model = sparse3DBA(n_iters = 50, lambda_ = 0.1, verbose=False, ratio_threshold=None)
     R, t = model(pts3D, feature_ref, feature_map_query, feature_grad_x, feature_grad_y,
-    K, image_shape[0], image_shape[1], R_init, t_init, track=True) #Remove if no more needed
+    K, image_shape[0], image_shape[1], R_init, t_init, track = track) #Remove if no more needed
 
     T = np.eye(4)
     T[:3, :3], T[3,:3] = R.numpy(), t.numpy()
