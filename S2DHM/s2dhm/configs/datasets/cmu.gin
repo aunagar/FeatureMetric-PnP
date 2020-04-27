@@ -3,14 +3,16 @@ import datasets.cmu_dataset
 # Extended CMU Dataset Config
 get_dataset_loader.dataset_loader_cls = @cmu_dataset.ExtendedCMUDataset()
 
-CMU_SLICES = ['slice2', 'slice3', 'slice4', 'slice5',
-              'slice6', 'slice7', 'slice8', 'slice9',
-              'slice10', 'slice11', 'slice12', 'slice13',
-              'slice14', 'slice15', 'slice16', 'slice17',
-              'slice18', 'slice19', 'slice20', 'slice21',
-              'slice22', 'slice23', 'slice24', 'slice25']
+# CMU_SLICES = ['slice2', 'slice3', 'slice4', 'slice5',
+#               'slice6', 'slice7', 'slice8', 'slice9',
+#               'slice10', 'slice11', 'slice12', 'slice13',
+#               'slice14', 'slice15', 'slice16', 'slice17',
+#               'slice18', 'slice19', 'slice20', 'slice21',
+#               'slice22', 'slice23', 'slice24', 'slice25']
 
-ExtendedCMUDataset.root = 'path/to/Extended-CMU-Seasons-public/'
+CMU_SLICES = ['slice2']
+
+ExtendedCMUDataset.root = '/nfs/nas12.ethz.ch/fs1201/infk_ivc_students/252-0579-00L/psarlin/cmu_extended/'
 ExtendedCMUDataset.image_folder = ''
 ExtendedCMUDataset.reference_sequences = %CMU_SLICES
 ExtendedCMUDataset.query_sequences = %CMU_SLICES

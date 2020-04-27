@@ -201,11 +201,15 @@ if __name__ == '__main__':
 
         #### Hypercolumn plotting #####
         ref_p = prediction.reference_inliers[0]
+        cv2.circle(r_img, tuple(ref_p.astype(int)), 2, (256, 0, 0), 3)
         scale = reference_hypercolumn.shape[-1]/r_img.shape[1]
         ref_p = (scale*ref_p).astype(int)
-        query_p = (scale*prediction.query_inliers[0]).astype(int)
+        query_p = prediction.query_inliers[0]
+        cv2.circle(q_img, tuple(query_p.astype(int)), 2, (256, 0, 0), 3)
+        query_p = (scale*query_p).astype(int)
         r_hc = reference_hypercolumn[:, :, ref_p[1], ref_p[0]].cpu()
-        visualize_hc(r_hc, query_hypercolumn.squeeze(0).cpu(), query_p, args.result + 'hc_'+str(k) + '.png')
+        visualize_hc(r_hc, query_hypercolumn.squeeze(0).cpu(), query_p, args.result + 'hc_'+str(k) + '.jpg',
+                    q_img, r_img)
         ###############################
 
         pts3D = torch.from_numpy(prediction.points_3d.reshape(-1,3))
