@@ -65,7 +65,6 @@ class SparseToDensePredictor(predictor.PosePredictor):
         result_frame = pd.DataFrame(columns=["reference_image_origin", "query_image_origin","num_initial_matches", "num_final_matches", "initial_cost", "final_cost","track_pickle_path"])
         cnt = 0
         for i, rank in tqdm_bar: #For each query image
-
             # Compute the query dense hypercolumn
             query_image = self._dataset.data['query_image_names'][i] #Name
             if query_image not in self._filename_to_intrinsics:
@@ -117,6 +116,12 @@ class SparseToDensePredictor(predictor.PosePredictor):
                     prediction = self._nearest_neighbor_prediction(
                         nearest_neighbor)
                     if prediction:
+                        # Add full matches to run FeatureMetricPnP on top of NN
+                        prediction = prediction._replace(num_matches=points_2D.shape[0],
+                        num_inliers=points_2D.shape[0],
+                        reference_inliers=local_reconstruction.points_2D[mask],
+                        query_inliers=np.squeeze(points_2D),
+                        points_3d = points_3D)
                         predictions.append(prediction)
                 else:
                     predictions.append(prediction)

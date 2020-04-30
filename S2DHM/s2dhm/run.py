@@ -56,6 +56,8 @@ def bind_cmu_parameters(cmu_slice, mode):
     elif mode=='sparse_to_dense':
         gin.bind_parameter('SparseToDensePredictor.output_filename',
             '../results/cmu/slice_{}/sparse_to_dense_predictions.txt'.format(cmu_slice))
+        gin.bind_parameter('SparseToDensePredictor.output_file',
+            '../results/cmu/slice_{}/'.format(cmu_slice))
         gin.bind_parameter('plot_correspondences.plot_correspondences.export_folder',
             '../logs/sparse_to_dense/correspondences/cmu/slice_{}/'.format(cmu_slice))
         gin.bind_parameter('plot_correspondences.plot_image_retrieval.export_folder',
