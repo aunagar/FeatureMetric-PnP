@@ -3,7 +3,7 @@ from __future__ import print_function, division
 from .utils import (from_homogeneous, to_homogeneous,
                 batched_eye_like, skew_symmetric, so3exp_map)
 
-from .utils import squared_loss, scaled_loss, sobel_filter, cauchy_loss, barron_loss, geman_mcclure_loss
+from .utils import squared_loss, scaled_loss, sobel_filter
 import torch
 from torch import nn
 import numpy as np
@@ -122,34 +122,11 @@ def ratio_threshold_feature_errors(feature_errors, threshold = 0.8):
     limit = torch.max(torch.abs(feature_errors)) * threshold
     mask = (torch.abs(feature_errors) < limit)
 
-    # TODO: Minimum inliers as a parameter (Measure distribution)
-
     return mask
-
-def find_inliers(pts3D, R, t, feature_map_query, feature_ref, K,im_width, im_height, threshold=None, loss_fn = squared_loss, mode = "ratio_max"):
-    # project all points using current R and T on image 
-    points_3d = torch.mm(R, pts3D.T).T + t
-    points_2d = torch.round(from_homogeneous(torch.mm(K, points_3d.T).T)).type(torch.IntTensor)-1
-
-    # Get the points that are supported within our image size
-    mask_supported = points_within_image(points_2d, im_width, im_height)
-
-    # We only take supported points
-    points_2d_supported = points_2d[mask_supported,:]
-    points_3d_supported = points_3d[mask_supported,:]
-
-    error = indexing_(feature_map_query, torch.flip(points_2d_supported,(1,)), im_width, im_height) - feature_ref[mask_supported]
-    
-    cost = 0.5 * (error**2).sum(-1) # Why 0.5??
-    cost_full, weights, _ = self.loss_fn(cost)
-
-    if mode == "ratio_max":
-        return ratio_threshold_feature_errors(cost_full, threshold = threshold) #Mask!
-
 
 #@gin.configurable
 class sparse3DBA(nn.Module):
-    def __init__(self, n_iters, loss_fn = geman_mcclure_loss, lambda_ = 0.01,
+    def __init__(self, n_iters, loss_fn = squared_loss, lambda_ = 0.01,
                 opt_depth = True, verbose = False, ratio_threshold = None, useGPU = False):
         super().__init__()
         self.iterations = n_iters
@@ -312,15 +289,9 @@ class sparse3DBA(nn.Module):
             points_3d_supported = points_3d[mask_supported,:]
 
             error = indexing_(feature_map_query, torch.flip(points_2d_supported,(1,)), im_width, im_height) - feature_ref[mask_supported]
-            
-            
-
 
             if self.use_ratio_test_:
-                cost = 0.5 * (error**2).sum(-1) # Why 0.5??
-                cost_full, weights, _ = self.loss_fn(cost)
-                #cost_full, weights, _ = scaled_loss(
-                #    cost_full, self.loss_fn, scale[..., None])
+                cost_full = 0.5*(error**2).sum(-1)
                 threshold_mask = ratio_threshold_feature_errors(cost_full, threshold = self.ratio_threshold_)
                 error = error[threshold_mask,:]
                 points_2d_supported = points_2d_supported[threshold_mask,:]
@@ -330,13 +301,7 @@ class sparse3DBA(nn.Module):
             else:
                 threshold_mask = None
             # Cost of Feature error -> SSD
-            cost = 0.5 * (error**2).sum(-1)
-            cost, weights, _ = self.loss_fn(cost)
-
-
-            # if confidence is not None:
-            #     weights = weights * confidence
-            #     cost = cost * confidence
+            cost = 0.5*(error**2).sum(-1)
 
             # Base Case
             if i == 0:
@@ -390,13 +355,11 @@ class sparse3DBA(nn.Module):
             
             #Grad = J_e_T * error
             Grad = torch.einsum('bij,bi->bj', J_e_T, error)
-            Grad = weights[..., None] * Grad # Weights are the first derivative of the loss function
             Grad = Grad.sum(-2)  # Grad was ... x N x 6
 
             J = J_e_T # final jacobian
             
             Hess = torch.einsum('ijk,ijl->ikl', J, J) # Approximate Hessian = J.T * J
-            Hess = weights[..., None, None] * Hess
             Hess = Hess.sum(-3)  # Hess was ... x N x 6 x 6
  
             # finding gradient step using LM or Newton method
@@ -438,8 +401,7 @@ class sparse3DBA(nn.Module):
             new_error = indexing_(feature_map_query, torch.flip(new_points_2d_supported, (1,)), im_width, im_height) - feature_ref[mask_supported]
             
             if self.use_ratio_test_:
-                new_cost = 0.5 * (new_error**2).sum(-1)
-                new_cost_full, weights, _ = self.loss_fn(new_cost)
+                new_cost_full = 0.5*(new_error**2).sum(-1)
 
                 new_threshold_mask = ratio_threshold_feature_errors(new_cost_full, threshold = self.ratio_threshold_)
                 new_error = new_error[new_threshold_mask]
@@ -448,13 +410,12 @@ class sparse3DBA(nn.Module):
                 #mask_supported[mask_supported] = new_threshold_mask
             else:
                 new_threshold_mask = None
-            new_cost = 0.5 * (new_error**2).sum(-1)
-            new_cost, weights, _ = self.loss_fn(new_cost)
-            new_cost = new_cost.mean()
+            new_cost = 0.5*(new_error**2).sum(-1)
+            new_cost = new_cost.mean(-1)
 
             if track:
                     self.track(R_new, t_new,new_cost.item(), new_points_2d, mask_supported, new_threshold_mask)
-            
+
             if self.verbose:
                 print("new cost is ", new_cost.item())
             lambda_ = np.clip(lambda_ * (10 if new_cost > prev_cost else 1/10),

@@ -15,6 +15,65 @@ def scaled_loss(x, fn, a):
 def squared_loss(x):
     return x, torch.ones_like(x), torch.zeros_like(x)
 
+def huber_loss(x):
+    """The classical robust Huber loss, with first and second derivatives."""
+    rho = 1
+    mask = x <= rho
+    sx = torch.sqrt(x)
+    isx = torch.max(sx.new_tensor(torch.finfo(torch.float).eps), 1/sx)
+    loss = torch.where(mask, x, 2*sx-rho)
+    loss_d1 = torch.where(mask, torch.ones_like(x), isx)
+    loss_d2 = torch.where(mask, torch.zeros_like(x), -isx/(2*x))
+    return loss, loss_d1, loss_d2
+
+
+def cauchy_loss(x):
+    zeros = torch.zeros(1).type(torch.DoubleTensor)
+    return barron_loss(x,zeros)
+
+def geman_mcclure_loss(x):
+    return barron_loss(x,torch.Tensor([2.0]).type(torch.DoubleTensor))
+
+def barron_loss(x, alpha):
+    """Parameterized  & adaptive robust loss function.
+    Described in:
+        A General and Adaptive Robust Loss Function, Barron, CVPR 2019
+
+    Contrary to the original implementation, assume the the input is already
+    squared and scaled (basically scale=1). Computes the first derivative, but
+    not the second (TODO if needed).
+
+    alpha = 0: Cauchy loss
+    """
+    loss_two = x
+    loss_two_d1 = torch.ones_like(x)
+
+    loss_zero = 2 * torch.log1p(torch.min(0.5*x, x.new_tensor(33e37)))
+    loss_zero_d1 = 2 / (x + 2)
+
+    # The loss when not in one of the above special cases.
+    machine_epsilon = torch.tensor(torch.finfo(torch.float32).eps).to(x)
+    # Clamp |2-alpha| to be >= machine epsilon so that it's safe to divide by.
+    beta_safe = torch.max(machine_epsilon, torch.abs(alpha - 2.))
+    # Clamp |alpha| to be >= machine epsilon so that it's safe to divide by.
+    alpha_safe = torch.where(alpha >= 0, torch.ones_like(alpha),
+                             -torch.ones_like(alpha)) * torch.max(
+                                 machine_epsilon, torch.abs(alpha))
+
+    loss_otherwise = 2 * (beta_safe / alpha_safe) * (
+        torch.pow(x / beta_safe + 1., 0.5 * alpha) - 1.)
+    loss_otherwise_d1 = torch.pow(x / beta_safe + 1., 0.5 * alpha - 1.)
+
+    # Select which of the cases of the loss to return.
+    loss = torch.where(
+        alpha == 0, loss_zero,
+        torch.where(alpha == 2, loss_two, loss_otherwise))
+    loss_d1 = torch.where(
+        alpha == 0, loss_zero_d1,
+        torch.where(alpha == 2, loss_two_d1, loss_otherwise_d1))
+
+    return loss, loss_d1, torch.zeros_like(x)
+
 
 def sobel_filter(feature_map, batch = False):
     """

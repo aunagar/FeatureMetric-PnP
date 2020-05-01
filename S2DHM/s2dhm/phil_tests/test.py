@@ -1,36 +1,28 @@
-import sys
-import os
-import cv2
-import pandas as pd
-sys.path.insert(0, os.path.abspath('../../../'))
-from BA.visualization.create_video import *
-import torch
 import pickle
+import pandas as pd
 
-"""
-Script to write a video from a track_pickle_file and a raw query image. Might take a few minutes.
+import numpy as np
 
-Known problems: The opacity of camera pose cone's surfaces does not work when running the script 
-on the cluster, but works locally. Probably some version problem in seaborn or matplotlib.
+import torch
 
-bsub -W 1:00 -n 1 -R "rusage[mem=32768]" -I python video.py
-
-"""
 
 if __name__=="__main__":
     name = "run2"
     df = pd.read_csv("/cluster/scratch/plindenbe/"+name+"/summary.csv", sep=";")
     
-    index = 20
+    index = 2
 
     query_image = df.loc[index,"query_image_origin"]
     pickle_path = df.loc[index,"track_pickle_path"]
 
     res_dict = pickle.load(open(pickle_path,"rb")) #Change
 
-    img = cv2.imread(query_image) #Change
+    #img = cv2.imread(query_image) #Change
 
     n_iters = 50
+
+
+    l_id = 0
 
     
     
@@ -43,6 +35,7 @@ if __name__=="__main__":
     inlier_masks=res_dict["mask"][:n_iters]
     threshold_mask_list=res_dict["threshold_mask"][:n_iters]
 
+
     for i in range(n_iters):
         if threshold_mask_list[i] is not None:
             inlier_masks[i][inlier_masks[i]]=threshold_mask_list[i]
@@ -50,7 +43,15 @@ if __name__=="__main__":
             continue;
         t_list[i] =t_list[i] - t_list[0] #Reset initial offset to origin -> better visualization
     t_list[0] = t_list[0] - t_list[0]
-    frames = create_frames_with_camera_pose(img, R_list, t_list,cost_list, point_list, mask_inlier_list=torch.stack(inlier_masks) if threshold_mask_list[0] is not None else None)
 
-
-    save_video(frames,name+"_"+str(index)+".mp4") #Change
+    #print(point_list[l_id, :].shape)
+    #print(inlier_masks[l_id].shape)
+    #mask = inlier_masks[l_id]
+    #print(mask)
+    #mask[mask] = threshold_mask_list[l_id]
+    #print(mask)
+    #print(point_list[l_id,mask,:].shape)
+    pts = np.array(point_list,dtype=np.int32)
+    for j,p in enumerate(pts[0]):
+        print(j,p)
+    print(pts[0].shape)

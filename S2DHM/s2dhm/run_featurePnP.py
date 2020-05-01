@@ -73,7 +73,7 @@ if __name__ == '__main__':
     result_frame = pd.DataFrame(columns=["reference_image_origin", "query_image_origin","reference_image_path","query_image_path","num_initial_matches", "num_final_matches", "initial_cost", "final_cost","track_pickle_path","result_path"])
 
     # put triangulation file in the same folder as robotcar data
-    triangulation_file = DATA_PATH + '/data/triangulation/robotcar_triangulation.npz'
+    triangulation_file = DATA_PATH + 'data/triangulation/robotcar_triangulation.npz'
     nvm_filepath = DATA_PATH + '3D-models/all-merged/all.nvm'
     image_root = DATA_PATH + 'images/'
 
@@ -138,7 +138,6 @@ if __name__ == '__main__':
                   'night-rain/rear/1418841346653791.jpg',
                   'night-rain/rear/1418840815469348.jpg']
 
-
     if args.ref_image:
         ref_images = [image_root + args.ref_image]
     else:
@@ -187,35 +186,35 @@ if __name__ == '__main__':
         cv2.imwrite(query_image_path, q_img)
         cv2.imwrite(ref_image_path, r_img)
 
-        for i, p in enumerate(prediction.reference_inliers.astype(int)):
-            # print(i, p)
-            cv2.circle(r_img, tuple(p), 1, (128, 128, 0), 3)
+        # for i, p in enumerate(prediction.reference_inliers.astype(int)):
+        #     # print(i, p)
+        #     cv2.circle(r_img, tuple(p), 1, (128, 128, 0), 3)
 
-        cv2.imwrite(args.result + 'ref_'+ str(k) + '_detection.png', r_img)
+        # cv2.imwrite(args.result + 'ref_'+ str(k) + '_detection.png', r_img)
 
-        for i, p in enumerate(prediction.query_inliers.astype(int)):
-            # print(i, p)
-            cv2.circle(q_img, tuple(p), 1, (128, 128, 0), 3)
+        # for i, p in enumerate(prediction.query_inliers.astype(int)):
+        #     # print(i, p)
+        #     cv2.circle(q_img, tuple(p), 1, (128, 128, 0), 3)
 
-        cv2.imwrite(args.result + 'query_'+ str(k) + '_detection.png', q_img)
+        # cv2.imwrite(args.result + 'query_'+ str(k) + '_detection.png', q_img)
 
-        #### Hypercolumn plotting #####
-        ref_p = prediction.reference_inliers[0]
-        cv2.circle(r_img, tuple(ref_p.astype(int)), 2, (256, 0, 0), 3)
-        scale = reference_hypercolumn.shape[-1]/r_img.shape[1]
-        ref_p = (scale*ref_p).astype(int)
-        query_p = prediction.query_inliers[0]
-        cv2.circle(q_img, tuple(query_p.astype(int)), 2, (256, 0, 0), 3)
-        query_p = (scale*query_p).astype(int)
-        r_hc = reference_hypercolumn[:, :, ref_p[1], ref_p[0]].cpu()
-        visualize_hc(r_hc, query_hypercolumn.squeeze(0).cpu(), query_p, args.result + 'hc_'+str(k) + '.jpg',
-                    q_img, r_img)
-        ###############################
+        # #### Hypercolumn plotting #####
+        # ref_p = prediction.reference_inliers[0]
+        # cv2.circle(r_img, tuple(ref_p.astype(int)), 2, (256, 0, 0), 3)
+        # scale = reference_hypercolumn.shape[-1]/r_img.shape[1]
+        # ref_p = (scale*ref_p).astype(int)
+        # query_p = prediction.query_inliers[0]
+        # cv2.circle(q_img, tuple(query_p.astype(int)), 2, (256, 0, 0), 3)
+        # query_p = (scale*query_p).astype(int)
+        # r_hc = reference_hypercolumn[:, :, ref_p[1], ref_p[0]].cpu()
+        # visualize_hc(r_hc, query_hypercolumn.squeeze(0).cpu(), query_p, args.result + 'hc_'+str(k) + '.jpg',
+        #             q_img, r_img)
+        # ###############################
 
         pts3D = torch.from_numpy(prediction.points_3d.reshape(-1,3))
         scale = reference_hypercolumn.shape[-1]/r_img.shape[1]
-        print(scale)
-        ref2d = torch.flip(torch.from_numpy((scale*prediction.reference_inliers).astype(int)),(1,))
+
+        ref2d = torch.flip(torch.from_numpy((scale * prediction.reference_inliers).astype(int)),(1,))
         feature_ref = torch.cat([reference_hypercolumn.squeeze(0)[:, i, j].unsqueeze(0) for i, j in zip(ref2d[:,0],
                                 ref2d[:,1])]).type(torch.DoubleTensor)
         feature_map_query = query_hypercolumn.squeeze(0).type(torch.DoubleTensor)
@@ -237,13 +236,13 @@ if __name__ == '__main__':
         proj2d = torch.round(proj2d[:,:2]).type(torch.IntTensor)-1
 
         # inital points
-        q_img = cv2.imread(query_images[k])
+        # q_img = cv2.imread(query_images[k])
 
-        for i, p in enumerate(proj2d):
-            # print(i, p)
-            cv2.circle(q_img, tuple(p), 1, (128, 128, 0), 3)
+        # for i, p in enumerate(proj2d):
+        #     # print(i, p)
+        #     cv2.circle(q_img, tuple(p), 1, (128, 128, 0), 3)
 
-        cv2.imwrite(args.result + 'query_' + str(k) + '_initialization.png', q_img)
+        # cv2.imwrite(args.result + 'query_' + str(k) + '_initialization.png', q_img)
 
 
         # model = sparse3DBA(n_iters = 100, lambda_ = 0.1, verbose=False, ratio_threshold=0.5)
@@ -254,7 +253,7 @@ if __name__ == '__main__':
         
         model = sparse3DBA(n_iters = 50, lambda_ = 0.1, verbose=False)
 
-        R, t = model(pts3D, feature_ref, feature_map_query, feature_grad_x, feature_grad_y, K, 1024, 1024, R_init, t_init)
+        R, t = model(pts3D, feature_ref, feature_map_query, feature_grad_x, feature_grad_y, K, 1024, 1024, R_init, t_init, track = args.track)
 
         result['R'] = R.numpy()
         result['t'] = t.numpy()
@@ -273,11 +272,11 @@ if __name__ == '__main__':
         proj2d = proj2d/proj2d[:,-1,None]
         proj2d = torch.round(proj2d[:,:2]).type(torch.IntTensor)-1
 
-        for i, p in enumerate(proj2d):
-            # print(i, p)
-            cv2.circle(q_img, tuple(p), 1, (128, 128, 0), 3)
+        # for i, p in enumerate(proj2d):
+        #     # print(i, p)
+        #     cv2.circle(q_img, tuple(p), 1, (128, 128, 0), 3)
 
-        cv2.imwrite(args.result + 'query_' + str(k) + '_final.png', q_img)
+        # cv2.imwrite(args.result + 'query_' + str(k) + '_final.png', q_img)
 
         """Write to DataFrame"""
         result_frame.loc[k] = [ref_images[k], query_images[k],ref_image_path, query_image_path, prediction.num_matches, model.best_num_inliers_, model.initial_cost_.item(), model.best_cost_.item(), track_pickle_path, result_path]

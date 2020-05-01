@@ -59,7 +59,7 @@ def create_frames_with_camera_pose(rgb_img,R_list, t_list, cost_list, point_list
         fig_data = plot_3d.fig2data(fig)
 
         # For every 2D point in our image (left)
-        for j, p in enumerate(pts):
+        for j, p in enumerate(pts[i]):
             # Draw past line
             cv2.polylines(img_int, np.int32([pts[:i+1,j,:]]), False, (0,0,255), 1)
             # Draw start point

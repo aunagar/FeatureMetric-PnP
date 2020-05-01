@@ -7,11 +7,11 @@ include 'configs/pose_prediction/sparse_to_dense_pose_prediction.gin'
 # Pre-trained model weights
 ImageRetrievalModel.checkpoint_path = '../checkpoints/robotcar/weights.pth.tar'
 ## Philipp
-#SparseToDensePredictor.output_filename = '/cluster/scratch/plindenbe/run1/sparse_to_dense_predictions_night_rain_9_14_17_21_24.txt'
-#SparseToDensePredictor.output_file = "/cluster/scratch/plindenbe/run1/"
+SparseToDensePredictor.output_filename = '/cluster/scratch/plindenbe/geman/sparse_to_dense_predictions_night_rain_geman_9_14_17_21_24.txt'
+SparseToDensePredictor.output_file = "/cluster/scratch/plindenbe/geman/"
 ## Ajay
-SparseToDensePredictor.output_filename = '../results/robotcar/sparse_to_dense_predictions_14_17_21_24_28_without_outliers.txt'
-SparseToDensePredictor.output_file = '../results/robotcar/without_outliers/'
+#SparseToDensePredictor.output_filename = '../results/robotcar/sparse_to_dense_predictions_14_17_21_24_28_without_outliers.txt'
+#SparseToDensePredictor.output_file = '../results/robotcar/without_outliers/'
 # Image logs
 plot_correspondences.plot_correspondences.export_folder = '../logs/sparse_to_dense/correspondences/robotcar/'
 plot_correspondences.plot_image_retrieval.export_folder = '../logs/sparse_to_dense/nearest_neighbor/robotcar/'

@@ -15,6 +15,9 @@ S2DHM/s2dhm/output.txt
 *.mp4
 S2DHM/s2dhm/output*
 S2DHM/s2dhm/results/
+S2DHM/results/
 S2DHM/s2dhm/small_test.py
 S2DHM/s2dhm/submit.sh
-S2DHM/s2dhm/submit2.shs
+S2DHM/s2dhm/submit2.sh
+output*.txt
+scripts.txt

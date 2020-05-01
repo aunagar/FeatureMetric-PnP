@@ -69,6 +69,7 @@ class SparseToDensePredictor(predictor.PosePredictor):
             query_image = self._dataset.data['query_image_names'][i] #Name
             if query_image not in self._filename_to_intrinsics:
                 continue
+
             query_dense_hypercolumn, _ = self._network.compute_hypercolumn(
                 [query_image], to_cpu=False, resize=True)
             channels, width, height = query_dense_hypercolumn.shape[1:]
@@ -137,6 +138,7 @@ class SparseToDensePredictor(predictor.PosePredictor):
                     
                     print("running optimization for query = {} and reference = {}".format(query_image,
                                                                     best_prediction.reference_filename) )
+                                          
                     t, quaterion, model = optimizer_PnP.optimize(query_dense_hypercolumn.view(channels, width, height)[None, ...],
                                         net = self._network, prediction = best_prediction, K = intrinsics, track = self.track)
                     
