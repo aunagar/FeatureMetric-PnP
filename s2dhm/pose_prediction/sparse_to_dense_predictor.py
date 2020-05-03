@@ -10,8 +10,9 @@ from pose_prediction import solve_pnp
 from pose_prediction import keypoint_association
 from pose_prediction import exhaustive_search
 from visualization import plot_correspondences
+from typing import List
 
-from pose_prediction import optimizer_feature_pnp
+from pose_prediction.optimize_feature_pnp import optimize_feature_pnp
 import pandas as pd
 import pickle
 
@@ -35,7 +36,6 @@ class SparseToDensePredictor(predictor.PosePredictor):
         self._filename_to_local_reconstruction = \
             self._dataset.data['filename_to_local_reconstruction']
         self.track = track
-        print(self.output_file)
 
     def _compute_sparse_reference_hypercolumn(self, reference_image,
                                               local_reconstruction):
@@ -58,13 +58,17 @@ class SparseToDensePredictor(predictor.PosePredictor):
 
         print('>> Generating pose predictions using sparse-to-dense matching...')
         output = []
+        
         tqdm_bar = tqdm(enumerate(self._ranks.T), total=self._ranks.shape[1],
                         unit='images', leave=True)
         # Pandas DF
         result_frame = pd.DataFrame(columns=["reference_image_origin", "query_image_origin","num_initial_matches", "num_final_matches", "initial_cost", "final_cost","track_pickle_path"])
         cnt = 0
+
         for i, rank in tqdm_bar: #For each query image
             # Compute the query dense hypercolumn
+            if cnt == 3:
+                break
             query_image = self._dataset.data['query_image_names'][i] #Name
             if query_image not in self._filename_to_intrinsics:
                 continue
@@ -138,27 +142,23 @@ class SparseToDensePredictor(predictor.PosePredictor):
                     print("running optimization for query = {} and reference = {}".format(query_image,
                                                                     best_prediction.reference_filename) )
                                           
-                    t, quaterion, model = optimizer_PnP.optimize(query_dense_hypercolumn.view(channels, width, height)[None, ...],
+                    t, quaternion, model = optimize_feature_pnp(query_dense_hypercolumn.view(channels, width, height)[None, ...],
                                         net = self._network, prediction = best_prediction, K = intrinsics, track = self.track)
                     
                     # track file
                     if self.track:
-                        track_pickle_path=self.output_path+"track_"+str(cnt)+".p"
+                        track_pickle_path=self._output_path+"track_"+str(cnt)+".p"
                         pickle.dump(model.track_, open(track_pickle_path,"wb"))
                     else:
                         track_pickle_path = None
 
-                    export[1:5], export[5:] = quaterion, t
+                    export[1:5], export[5:] = quaternion, t
                     # Add row to df with track file
                     result_frame.loc[cnt] = [best_prediction.reference_filename, query_image, best_prediction.num_matches, model.best_num_inliers_, model.initial_cost_.item(), model.best_cost_.item(), track_pickle_path]
-                    # print(result_frame.loc[cnt,:])
-                    # result_frame.to_csv(self.output_file +"summary.csv", sep=";")
-                    cnt+=1
                 else:
                     result_frame.loc[cnt] = [best_prediction.reference_filename, query_image, None, None, None, None, None]
-                    cnt+=1
                     print("RANSAC PnP failed for {}, and we predicted pose for nearest reference image {}.".format(query_image, reference_filename))
-
+                cnt+=1
                 if self._log_images:
                     if np.ndim(np.squeeze(best_prediction.query_inliers)):
                         self._plot_inliers(
@@ -182,8 +182,25 @@ class SparseToDensePredictor(predictor.PosePredictor):
                 tqdm_bar.set_description(
                     "[{} inliers]".format(best_prediction.num_inliers))
                 tqdm_bar.refresh()
-        result_frame.to_csv(self.output_path + self.output_csvname, sep=";")
+        result_frame.to_csv(self._output_path + self._output_csvname, sep=";")
         return output
+
+    def save(self, predictions: List):
+        """Export the predictions as a .txt file.
+
+        Args:
+            predictions: The list of predictions, where each line contains a
+                [query name, quaternion, translation], as per the CVPR Visual
+                Localization Challenge.
+        """
+
+        print('>> Saving final predictions as {}'.format(self._output_filename))
+        df = pd.DataFrame(np.array(predictions[1::2]))
+        df.to_csv(self._output_path + self._output_filename, sep=' ', header=None, index=None)
+
+        print('>> Saving initial predictions as {}'.format(self._output_filename.replace(".txt", "_initial.txt")))
+        df = pd.DataFrame(np.array(predictions[::2]))
+        df.to_csv(self._output_path + self._output_filename.replace(".txt", "_initial.txt"), sep=' ', header=None, index=None)
 
     @property
     def dataset(self):

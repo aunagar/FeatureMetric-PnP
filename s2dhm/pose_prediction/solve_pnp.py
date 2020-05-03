@@ -5,7 +5,7 @@ from collections import namedtuple
 from pose_prediction import matrix_utils
 
 Prediction = namedtuple('Prediction',
-    'success num_matches num_inliers reference_inliers query_inliers points_3d quaternion matrix reference_filename reference_keypoints')
+    'success num_matches num_inliers reference_inliers query_inliers points_3d quaternion matrix reference_filename reference_keypoints inlier_mask')
 
 
 @gin.configurable
@@ -57,7 +57,8 @@ def solve_pnp(points_2D: np.ndarray,
             quaternion=quaternion,
             matrix=matrix,
             reference_filename=reference_filename,
-            reference_keypoints=reference_keypoints)
+            reference_keypoints=reference_keypoints,
+            inlier_mask = None)
     
     if points_2D.shape[0] > minimum_matches:
         success, rvec, tvec, inliers = cv2.solvePnPRansac(
@@ -76,7 +77,8 @@ def solve_pnp(points_2D: np.ndarray,
             quaternion=None,
             matrix=None,
             reference_filename=reference_filename,
-            reference_keypoints=reference_keypoints)
+            reference_keypoints=reference_keypoints,
+            inlier_mask = None)
 
     if success and len(inliers) >= minimum_inliers:
         success, rvec, tvec = cv2.solvePnP(
@@ -100,7 +102,8 @@ def solve_pnp(points_2D: np.ndarray,
             quaternion=quaternion,
             matrix=matrix,
             reference_filename=reference_filename,
-            reference_keypoints=reference_keypoints)
+            reference_keypoints=reference_keypoints,
+            inlier_mask = inliers)
     else:
         return Prediction(
             success=False,
@@ -112,4 +115,5 @@ def solve_pnp(points_2D: np.ndarray,
             quaternion=None,
             matrix=None,
             reference_filename=reference_filename,
-            reference_keypoints=reference_keypoints)
+            reference_keypoints=reference_keypoints,
+            inlier_mask = None)

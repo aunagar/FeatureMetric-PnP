@@ -1,14 +1,14 @@
 import pose_prediction.exhaustive_search
 import pose_prediction.sparse_to_dense_predictor
 import pose_prediction.solve_pnp
-import pose_prediction.optimizer_PnP
+import pose_prediction.optimize_feature_pnp
 
 get_pose_predictor.pose_predictor_cls = @SparseToDensePredictor
 SparseToDensePredictor.top_N = 30
 SparseToDensePredictor.track = True # do you want to track all the points during optimization?
 
 # PnP Parameters
-solve_pnp.reprojection_threshold = 12
+solve_pnp.reprojection_threshold = 12.0
 solve_pnp.minimum_inliers = 12
 solve_pnp.minimum_matches = 5
 solve_pnp.use_ransac = True
@@ -17,4 +17,4 @@ solve_pnp.use_ransac = True
 exhaustive_search.factor = 0.006
 
 # Optimizer parameters
-optimize.image_shape = [1024, 1024]
+optimize_feature_pnp.image_shape = [1024, 1024]

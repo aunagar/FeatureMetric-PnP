@@ -7,8 +7,10 @@ include 'configs/pose_prediction/sparse_to_dense_pose_prediction.gin'
 # Pre-trained model weights
 ImageRetrievalModel.checkpoint_path = '../checkpoints/cmu/weights.pth.tar'
 
-SparseToDensePredictor.output_filename = '../results/cmu/new_hc/sparse_to_dense_predictions.txt'
-SparseToDensePredictor.output_file = '../results/cmu/new_hc/'
+# SparseToDensePredictor.output_filename = 'sparse_to_dense_predictions_night_rain_geman_9_14_17_21_24.txt'
+# SparseToDensePredictor.output_csvname = 'summary.csv'
+# SparseToDensePredictor.output_file = "/cluster/scratch/plindenbe/cmu/"
+
 # Image logs
 plot_correspondences.plot_correspondences.export_folder = '../logs/sparse_to_dense/correspondences/robotcar/'
 plot_correspondences.plot_image_retrieval.export_folder = '../logs/sparse_to_dense/nearest_neighbor/robotcar/'

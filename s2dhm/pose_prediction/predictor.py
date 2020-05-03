@@ -35,8 +35,9 @@ class PosePredictor():
         self._network = network
         self._output_filename = output_filename
         self._output_path = output_path
-        self.outptu_csvname = output_csvname
+        self._output_csvname = output_csvname
         self._log_images = log_images
+        Path(self._output_path).mkdir(exist_ok=True, parents=True) # Autocreate output folder!
 
     def _choose_best_prediction(self, predictions, query_image):
         """Pick the best prediction from the top-N nearest neighbors."""
@@ -60,7 +61,8 @@ class PosePredictor():
                 quaternion=quaternion,
                 matrix=matrix,
                 reference_filename=nearest_neighbor,
-                reference_keypoints=None)
+                reference_keypoints=None,
+                inlier_mask = None)
             return prediction
         return None
 
@@ -85,6 +87,5 @@ class PosePredictor():
                 Localization Challenge.
         """
         print('>> Saving predictions under {}'.format(self._output_filename))
-        Path(self._output_filename).parent.mkdir(exist_ok=True, parents=True)
         df = pd.DataFrame(np.array(predictions))
-        df.to_csv(self._output_filename, sep=' ', header=None, index=None)
+        df.to_csv(self._output_path + self._output_filename, sep=' ', header=None, index=None)

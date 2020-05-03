@@ -2,19 +2,21 @@
 A set of geometry tools for PyTorch tensors and sometimes NumPy arrays.
 """
 
+import gin
 import torch
 import numpy as np
 import kornia
-
 
 def scaled_loss(x, fn, a):
     a2 = a**2
     loss, loss_d1, loss_d2 = fn(x/a2)
     return loss*a2, loss_d1, loss_d2/a2
 
+@gin.register
 def squared_loss(x):
     return x, torch.ones_like(x), torch.zeros_like(x)
 
+@gin.register
 def huber_loss(x):
     """The classical robust Huber loss, with first and second derivatives."""
     rho = 1
@@ -26,11 +28,12 @@ def huber_loss(x):
     loss_d2 = torch.where(mask, torch.zeros_like(x), -isx/(2*x))
     return loss, loss_d1, loss_d2
 
-
+@gin.register
 def cauchy_loss(x):
     zeros = torch.zeros(1).type(torch.DoubleTensor)
     return barron_loss(x,zeros)
 
+@gin.register
 def geman_mcclure_loss(x):
     return barron_loss(x,torch.Tensor([2.0]).type(torch.DoubleTensor))
 

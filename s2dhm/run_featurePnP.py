@@ -42,8 +42,6 @@ parser.add_argument(
 parser.add_argument(
     '--track', type = bool, help = 'Whether the track should be written as a pickle file', required = False, default = False)
 
-
-
 def load_data(triangulation_filepath, nvm_filepath, filenames):
     filename_to_pose = data_helpers.from_nvm(nvm_filepath, filenames)
     filename_to_local_reconstruction = data_helpers.load_triangulation_data(triangulation_filepath, filenames)
@@ -198,18 +196,7 @@ if __name__ == '__main__':
 
         # cv2.imwrite(args.result + 'query_'+ str(k) + '_detection.png', q_img)
 
-        # #### Hypercolumn plotting #####
-        # ref_p = prediction.reference_inliers[0]
-        # cv2.circle(r_img, tuple(ref_p.astype(int)), 2, (256, 0, 0), 3)
-        # scale = reference_hypercolumn.shape[-1]/r_img.shape[1]
-        # ref_p = (scale*ref_p).astype(int)
-        # query_p = prediction.query_inliers[0]
-        # cv2.circle(q_img, tuple(query_p.astype(int)), 2, (256, 0, 0), 3)
-        # query_p = (scale*query_p).astype(int)
-        # r_hc = reference_hypercolumn[:, :, ref_p[1], ref_p[0]].cpu()
-        # visualize_hc(r_hc, query_hypercolumn.squeeze(0).cpu(), query_p, args.result + 'hc_'+str(k) + '.jpg',
-        #             q_img, r_img)
-        # ###############################
+
 
         # pts3D = torch.from_numpy(prediction.points_3d.reshape(-1,3))
         # scale = reference_hypercolumn.shape[-1]/r_img.shape[1]

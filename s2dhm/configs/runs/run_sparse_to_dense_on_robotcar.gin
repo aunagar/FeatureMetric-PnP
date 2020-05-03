@@ -7,9 +7,9 @@ include 'configs/pose_prediction/sparse_to_dense_pose_prediction.gin'
 # Pre-trained model weights
 ImageRetrievalModel.checkpoint_path = '../checkpoints/robotcar/weights.pth.tar'
 ## Philipp
-SparseToDensePredictor.output_filename = 'sparse_to_dense_predictions_night_rain_geman_9_14_17_21_24.txt'
-SparseToDensePredictor.output_csvname = 'summary.csv'
-SparseToDensePredictor.output_file = "/cluster/scratch/plindenbe/geman/"
+# SparseToDensePredictor.output_filename = 'sparse_to_dense_predictions_night_rain_geman_9_14_17_21_24.txt'
+# SparseToDensePredictor.output_csvname = 'summary.csv'
+# SparseToDensePredictor.output_file = "/cluster/scratch/plindenbe/geman/"
 ## Ajay
 #SparseToDensePredictor.output_filename = '../results/robotcar/sparse_to_dense_predictions_14_17_21_24_28_without_outliers.txt'
 #SparseToDensePredictor.output_file = '../results/robotcar/without_outliers/'

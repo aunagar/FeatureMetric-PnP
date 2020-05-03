@@ -10,7 +10,7 @@ from pathlib import Path
 from collections import namedtuple
 from datasets.model_parser import ModelParser
 
-sys.path.insert(0, 'datasets/')
+sys.path.append('s2dhm/datasets/')
 
 
 reconstruction_data = namedtuple('reconstruction_data',

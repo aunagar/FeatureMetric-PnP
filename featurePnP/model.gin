@@ -1,0 +1,11 @@
+sparseFeaturePnP.loss_fn = @squared_loss
+sparseFeaturePnP.ratio_threshold = None
+sparseFeaturePnP.verbose = False
+sparseFeaturePnP.useGPU = False
+sparseFeaturePnP.n_iters = 50
+
+
+
+
+
+

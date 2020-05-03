@@ -14,3 +14,4 @@ SuperPointPredictor.ratio = 0.9
 solve_pnp.reprojection_threshold = 12.0
 solve_pnp.minimum_inliers = 12
 solve_pnp.minimum_matches = 5
+solve_pnp.use_ransac = True

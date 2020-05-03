@@ -3,7 +3,7 @@ import datasets.cmu_dataset
 # Extended CMU Dataset Config
 get_dataset_loader.dataset_loader_cls = @cmu_dataset.ExtendedCMUDataset()
 
- CMU_SLICES = ['slice2', 'slice3', 'slice4', 'slice5',
+CMU_SLICES = ['slice2', 'slice3', 'slice4', 'slice5',
               'slice6', 'slice7', 'slice8', 'slice9',
                'slice10', 'slice11', 'slice12', 'slice13',
                'slice14', 'slice15', 'slice16', 'slice17',

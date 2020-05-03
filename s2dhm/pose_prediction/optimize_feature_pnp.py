@@ -1,19 +1,19 @@
+
+import gin
 import os, sys
 import numpy as np
 import torch
-import gin
+
 from pose_prediction import matrix_utils
 
 # this is a hack
 # sys.path.insert(0, os.path.abspath('../../'))
 
-from ..FeaturePnP.model import sparse3DBA
-from ..FeaturePnP.helpers.utils import sobel_filter
+from model import sparseFeaturePnP
+from helpers.utils import sobel_filter
 
 def feature_pnp(query_hypercolumns, reference_hypercolumns, prediction, K, image_shape, track = False):
     relative_shape = np.array([reference_hypercolumns.shape[2] / image_shape[0], reference_hypercolumns.shape[3] / image_shape[1]])
-
-    K = torch.from_numpy( K )
     pts3D = torch.from_numpy( prediction.points_3d.reshape(-1,3) ) 
     ref2d = torch.from_numpy(relative_shape).view(1,2) * torch.from_numpy(prediction.reference_inliers)
     ref2d = torch.flip( ref2d.type(torch.IntTensor), (1,) )
@@ -25,15 +25,15 @@ def feature_pnp(query_hypercolumns, reference_hypercolumns, prediction, K, image
     R_init, t_init = torch.from_numpy(T_init[:3, :3]), torch.from_numpy(T_init[:3,3])
     feature_grad_x, feature_grad_y = sobel_filter(feature_map_query)
 
-    model = sparse3DBA(n_iters = 50, lambda_ = 0.1, verbose=False, ratio_threshold=None)
+    model = sparseFeaturePnP()
     R, t = model(pts3D, feature_ref, feature_map_query, feature_grad_x, feature_grad_y,
     K, image_shape[0], image_shape[1], R_init, t_init, track = track) #Remove if no more needed
 
     return R, t, model
 
 @gin.configurable
-def optimize(query_hypercolumns, net, prediction, K, image_shape, track = False):
-    
+def optimize_feature_pnp(query_hypercolumns, net, prediction, K, image_shape, track = False):
+    K = torch.from_numpy( K )
     print("Initial : {}".format(list(prediction.quaternion) + list(prediction.matrix[:3,3])))
 
     reference_hypercolumns, _ = net.compute_hypercolumn( [prediction.reference_filename], to_cpu=False, resize=True )

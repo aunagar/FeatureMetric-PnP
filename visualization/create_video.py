@@ -4,6 +4,10 @@ import cv2
 import matplotlib.pyplot as plt
 
 
+
+
+
+
 def create_frames_with_camera_pose(rgb_img,R_list, t_list, cost_list, point_list, dpi=160, cost_plot_height=300, mask_inlier_list = None):
     # Create a list of images, size (H+cost_plot_height)x2*W
     # Takes some time (~ half a minute with n_iters=100 and image size 1024x1024)
@@ -84,3 +88,24 @@ def save_video(frames, video_path,fr=2):
     for image in frames:
         video.write(image)
     video.release()
+
+def frames_from_track(query_image, track_dict, n_iters, *args, **kwargs):
+    img = cv2.imread(query_image) #Change
+    
+    point_list=torch.stack(track_dict["points2d"][:n_iters])
+    R_list = track_dict["Rs"][:n_iters]
+    cost_list = track_dict["costs"][:n_iters]
+    t_list = track_dict["ts"][:n_iters]
+    inlier_masks=track_dict["mask"][:n_iters]
+    threshold_mask_list=track_dict["threshold_mask"][:n_iters]
+
+    for i in range(n_iters):
+        if threshold_mask_list[i] is not None:
+            inlier_masks[i][inlier_masks[i]]=threshold_mask_list[i]
+        if i == 0:
+            continue;
+        t_list[i] =t_list[i] - t_list[0] #Reset initial offset to origin -> better visualization
+    t_list[0] = t_list[0] - t_list[0]
+    frames = create_frames_with_camera_pose(img, R_list, t_list,cost_list, point_list, mask_inlier_list=torch.stack(inlier_masks) if threshold_mask_list[0] is not None else None)
+
+    return frames

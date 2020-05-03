@@ -1,20 +1,29 @@
 import os
+import sys
 import gin
 import torch
 import argparse
 import logging
 import numpy as np
+
+
+sys.path.append('s2dhm/') #Should be autodetected later in __init__.py file!
+sys.path.append('featurePnP/')
+sys.path.append('visualization/')
+
 from image_retrieval import rank_images
 from network import network
 from pose_prediction import predictor
 from datasets import base_dataset
-
+from input_configs.IOgin import IOgin
 
 # Argparse
 parser = argparse.ArgumentParser(
     description = 'Sparse-to-dense Hypercolumn Matching')
 parser.add_argument(
-    '--dataset', type=str, choices=['robotcar', 'cmu'], required=True)
+    '--input_config', type = str, help = 'path to gin config file', default = "input_configs/default_robotcar.gin", required = False)
+parser.add_argument(
+    '--dataset', type=str, choices=['robotcar', 'cmu'], required=False, default ="robotcar")
 parser.add_argument(
     '--gpu-id', help='GPU ID, if not specified all available GPUs will be used')
 parser.add_argument(
@@ -71,13 +80,19 @@ def main(args):
         os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu_id
     device = torch.device('cuda' if torch.cuda.is_available() else "cpu")
 
-    # Load gin config based on dataset name
     gin.parse_config_file(
-        'configs/runs/run_{}_on_{}.gin'.format(args.mode, args.dataset))
+        args.input_config)
+    
+    # Load gin config based on dataset name
+    # gin.parse_config_file(
+    #    'configs/runs/run_{}_on_{}.gin'.format(args.mode, args.dataset))
+
 
     # For CMU, pick a slice
     if args.dataset=='cmu':
         bind_cmu_parameters(args.cmu_slice, args.mode)
+    
+    io_gin = IOgin(args.input_config) # Parameters from Input file (Load correct dataset)
 
     # Create dataset loader
     dataset = get_dataset_loader()
@@ -94,7 +109,11 @@ def main(args):
                                         network=net,
                                         ranks=ranks,
                                         log_images=args.log_images)
+
     pose_predictor.save(pose_predictor.run())
+
+    with open(io_gin.output_dir + "input_operative_str.txt", "w") as doc:
+        doc.write(str(gin.operative_config_str()))
 
 if __name__ == '__main__':
     args = parser.parse_args()

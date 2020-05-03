@@ -40,6 +40,8 @@ parser.add_argument(
     '--query_image', type = str, help = 'query image path (relative to Image folder)', required = False)
 parser.add_argument(
     '--track', type = bool, help = 'Whether the track should be written as a pickle file', required = False, default = True)
+parser.add_argument(
+    '--input_file', type = bool, help = 'Path to .gin input file', required = False, default = "/input_configs/default.gin")
 
 
 def load_data(triangulation_filepath, nvm_filepath, filenames):

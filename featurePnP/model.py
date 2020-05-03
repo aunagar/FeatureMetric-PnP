@@ -128,6 +128,7 @@ def ratio_threshold_feature_errors(feature_errors, threshold = 0.8):
 
     return mask
 
+@gin.configurable
 def find_inliers(pts3D, R, t, feature_map_query, feature_ref, K,im_width, im_height, threshold=None, loss_fn = squared_loss, mode = "ratio_max"):
     # project all points using current R and T on image 
     points_3d = torch.mm(R, pts3D.T).T + t
@@ -150,9 +151,9 @@ def find_inliers(pts3D, R, t, feature_map_query, feature_ref, K,im_width, im_hei
 
 
 @gin.configurable
-class sparse3DBA(nn.Module):
-    def __init__(self, n_iters, loss_fn = geman_mcclure_loss, lambda_ = 0.01,
-                opt_depth = True, verbose = False, ratio_threshold = None, useGPU = False):
+class sparseFeaturePnP(nn.Module):
+    def __init__(self, n_iters, loss_fn = squared_loss, lambda_ = 0.01,
+                verbose = False, ratio_threshold = None, useGPU = False):
         super().__init__()
         self.iterations = n_iters
         self.loss_fn = loss_fn
@@ -172,15 +173,10 @@ class sparse3DBA(nn.Module):
         self.track_["mask"].append(mask)
         self.track_["threshold_mask"].append(threshold_mask)
 
-    @gin_configurable
+    @gin.configurable
     def multilevel_optimization(self, feature_pyramid, pts3D, feature_ref, feature_map_query,
                     feature_grad_x, feature_grad_y,*args, **kwargs):
-        """
-        feature_pyramid = [(0,256),(256,1024),(1024,-1)]
-        """
-        print(feature_ref.shape)
-        print(feature_map_query.shape)
-        print(feature_grad_x.shape)
+                    
         self.initial_cost_= self.compute_cost(pts3D, kwargs["R_init"], kwargs["t_init"], feature_map_query, feature_ref, *args)
         channels = feature_map_query.shape[0]
 
@@ -241,10 +237,10 @@ class sparse3DBA(nn.Module):
         cost = 0.5*(error**2).sum(-1)
         return cost.mean()
 
-    @gin_configurable
+    @gin.configurable
     def forward(self, pts3D, feature_ref, feature_map_query,
                 feature_grad_x, feature_grad_y, K, im_width, im_height, R_init=None, t_init=None,
-                track = False, log = True,confidence=None, scale=None):
+                track = False, confidence=None, scale=None):
         '''
         inputs:
         @pts3D : 3D points in reference camera frame (Nx3)
@@ -291,12 +287,10 @@ class sparse3DBA(nn.Module):
         # print("iter %d: %f" % (i, start.elapsed_time(end)))
 
         if self.useGPU and torch.cuda.is_available(): # Move stuff to GPU
-            print("Running Sparse3DBA.forward on GPU")
+            # print("Running Sparse3DBA.forward on GPU")
             K, R, t, pts3D = K.cuda(), R.cuda(), t.cuda(), pts3D.cuda()
             feature_map_query, feature_ref = feature_map_query.cuda(), feature_ref.cuda()
             feature_grad_x, feature_grad_y = feature_grad_x.cuda(), feature_grad_y.cuda()
-        else:
-            print("Running Sparse3DBA.forward on CPU")
 
         for i in range(self.iterations):
 
@@ -480,8 +474,8 @@ class sparse3DBA(nn.Module):
             
             R, t = R_new, t_new # Actually we should write the result only if the cost decreased!
 
-        if track and (pickle_path is not None):
-            pickle.dump(self.track_, open(pickle_path, "wb")) 
+        # if track and (pickle_path is not None):
+        #     pickle.dump(self.track_, open(pickle_path, "wb")) 
 
         if self.useGPU:
             return R_best.cpu(), t_best.cpu()

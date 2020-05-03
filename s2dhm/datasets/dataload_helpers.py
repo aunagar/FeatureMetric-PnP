@@ -8,6 +8,8 @@ from typing import List
 from pathlib import Path
 from collections import namedtuple
 
+sys.path.append('s2dhm/datasets/')
+
 reconstruction_data = namedtuple('reconstruction_data',
     'intrinsics distortion_coefficients points_2D points_3D')
 
