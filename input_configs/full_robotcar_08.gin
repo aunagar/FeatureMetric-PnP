@@ -1,7 +1,6 @@
 # root is ~/FeatureMetric-BA/
-
+# 6430
 import visualization.plot_correspondences
-import input_configs.IOgin
 
 include 's2dhm/configs/datasets/robotcar.gin'
 include 's2dhm/configs/network/network.gin'
@@ -13,25 +12,35 @@ plot_correspondences.plot_correspondences.export_folder = 'logs/sparse_to_dense/
 plot_correspondences.plot_image_retrieval.export_folder = 'logs/sparse_to_dense/nearest_neighbor/robotcar/'
 
 RUN_NAME = "Test"
-OUTPUT_DIR = "/cluster/scratch/plindenbe/robotcar/squared_loss/"
-CSV_NAME = "summary.csv"
+OUTPUT_DIR = "/cluster/scratch/plindenbe/robotcar/full_ratio_08_9_14_17_21_24/"
+CSV_NAME = "featurePnP_summary.csv"
 
 # Pre-trained model weights
 ImageRetrievalModel.checkpoint_path = 'checkpoints/robotcar/weights.pth.tar'
-ImageRetrievalModel.hypercolumn_layers = [9, 14, 17,21, 24]
+ImageRetrievalModel.hypercolumn_layers =  [9, 14, 17,21, 24] # [14, 17, 21, 24, 28] #
+
+# Change only first
+SparseToDensePredictor.output_filename = 'sparse_to_dense_predictions.txt'
+SparseToDensePredictor.output_csvname = %CSV_NAME
+SparseToDensePredictor.output_path = %OUTPUT_DIR
+SparseToDensePredictor.track = False
 
 # Output parameters
 IOgin.name = %RUN_NAME
 IOgin.csv_name = %CSV_NAME
 IOgin.output_dir = %OUTPUT_DIR
 
+##Choose Data
+RobotCarDataset.reference_sequences = ['overcast-reference']
+# ['dawn', 'dusk', 'night', 'night-rain', 'overcast-summer', 'overcast-winter', 'rain', 'snow', 'sun']
+RobotCarDataset.query_sequences = ['dawn', 'dusk', 'night', 'night-rain', 'overcast-summer', 'overcast-winter', 'rain', 'snow', 'sun']
+
 ## Model Parameters:
 sparseFeaturePnP.loss_fn = @squared_loss #@cauchy_loss, ...
-sparseFeaturePnP.ratio_threshold = None
-sparseFeaturePnP.n_iters = 50
+sparseFeaturePnP.ratio_threshold = 0.8
+sparseFeaturePnP.n_iters = 100
 
 # Other parameters:
-
 get_pose_predictor.pose_predictor_cls = @SparseToDensePredictor
 SparseToDensePredictor.top_N = 30
 SparseToDensePredictor.track = True # do you want to track all the points during optimization?
@@ -41,10 +50,11 @@ solve_pnp.reprojection_threshold = 12.0
 solve_pnp.minimum_inliers = 12
 solve_pnp.minimum_matches = 5
 solve_pnp.use_ransac = True ##IMPORTANT##
-solve_pnp.return_masked = True
+solve_pnp.return_masked = False
 
 # Exhaustive search parameters
 exhaustive_search.factor = 0.006
 
 # Optimizer parameters
 optimize_feature_pnp.image_shape = [1024, 1024]
+

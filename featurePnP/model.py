@@ -144,10 +144,12 @@ def find_inliers(pts3D, R, t, feature_map_query, feature_ref, K,im_width, im_hei
     error = indexing_(feature_map_query, torch.flip(points_2d_supported,(1,)), im_width, im_height) - feature_ref[mask_supported]
     
     cost = 0.5 * (error**2).sum(-1) # Why 0.5??
-    cost_full, weights, _ = self.loss_fn(cost)
+    cost_full, weights, _ = loss_fn(cost)
 
     if mode == "ratio_max":
-        return ratio_threshold_feature_errors(cost_full, threshold = threshold) #Mask!
+        threshold_mask = ratio_threshold_feature_errors(cost_full, threshold = threshold) #Mask!
+        mask_supported[mask_supported] = threshold_mask
+        return mask_supported
 
 
 @gin.configurable
@@ -198,15 +200,11 @@ class sparseFeaturePnP(nn.Module):
                     grad_x, grad_y = feature_grad_x[start:end,:,:], feature_grad_y[start:end,:,:]
                 else:
                     grad_x, grad_y = sobel_filter(feature_map_local)
-                
-                print(feature_map_local.shape)
-
-                    
 
                 kwargs["R_init"], kwargs["t_init"] = self.forward(pts3D, feature_ref[:,start:end], feature_map_local,
                     grad_x, grad_y,*args,**kwargs)
                 del feature_map_local, grad_x, grad_y
-                print("Cost:", self.compute_cost(pts3D, kwargs["R_init"], kwargs["t_init"], feature_map_query, feature_ref, *args).item())
+                # print("Cost:", self.compute_cost(pts3D, kwargs["R_init"], kwargs["t_init"], feature_map_query, feature_ref, *args).item())
         return kwargs["R_init"], kwargs["t_init"]
 
 

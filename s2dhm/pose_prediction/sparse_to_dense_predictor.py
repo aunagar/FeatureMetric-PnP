@@ -58,17 +58,19 @@ class SparseToDensePredictor(predictor.PosePredictor):
 
         print('>> Generating pose predictions using sparse-to-dense matching...')
         output = []
-        
+
         tqdm_bar = tqdm(enumerate(self._ranks.T), total=self._ranks.shape[1],
                         unit='images', leave=True)
         # Pandas DF
         result_frame = pd.DataFrame(columns=["reference_image_origin", "query_image_origin","num_initial_matches", "num_final_matches", "initial_cost", "final_cost","track_pickle_path"])
-        cnt = 0
+        cnt = -1
 
         for i, rank in tqdm_bar: #For each query image
             # Compute the query dense hypercolumn
-            if cnt == 3:
-                break
+            cnt+=1
+            # if cnt != 16:
+            #     continue
+            
             query_image = self._dataset.data['query_image_names'][i] #Name
             if query_image not in self._filename_to_intrinsics:
                 continue
@@ -116,13 +118,14 @@ class SparseToDensePredictor(predictor.PosePredictor):
                     reference_keypoints=None)
 
                 # If PnP failed, fall back to nearest-neighbor prediction
+                
                 if not prediction.success:
                     prediction = self._nearest_neighbor_prediction(
                         nearest_neighbor)
                     if prediction:
                         # Add full matches to run FeatureMetricPnP on top of NN
                         prediction = prediction._replace(num_matches=points_2D.shape[0],
-                        num_inliers=points_2D.shape[0],
+                        num_inliers=0,
                         reference_inliers=local_reconstruction.points_2D[mask],
                         query_inliers=np.squeeze(points_2D),
                         points_3d = points_3D)
@@ -158,7 +161,7 @@ class SparseToDensePredictor(predictor.PosePredictor):
                 else:
                     result_frame.loc[cnt] = [best_prediction.reference_filename, query_image, None, None, None, None, None]
                     print("RANSAC PnP failed for {}, and we predicted pose for nearest reference image {}.".format(query_image, reference_filename))
-                cnt+=1
+                
                 if self._log_images:
                     if np.ndim(np.squeeze(best_prediction.query_inliers)):
                         self._plot_inliers(
@@ -201,7 +204,9 @@ class SparseToDensePredictor(predictor.PosePredictor):
         print('>> Saving initial predictions as {}'.format(self._output_filename.replace(".txt", "_initial.txt")))
         df = pd.DataFrame(np.array(predictions[::2]))
         df.to_csv(self._output_path + self._output_filename.replace(".txt", "_initial.txt"), sep=' ', header=None, index=None)
-
-    @property
+        #     print('>> Saving initial predictions as {}'.format(self._output_filename.replace(".txt", "_initial.txt")))
+        #     df = pd.DataFrame(np.array(predictions))
+        #     df.to_csv(self._output_path + self._output_filename.replace(".txt", "_initial.txt"), sep=' ', header=None, index=None)
+    # @property
     def dataset(self):
         return self._dataset

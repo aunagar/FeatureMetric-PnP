@@ -19,7 +19,8 @@ def solve_pnp(points_2D: np.ndarray,
               reference_filename: str,
               reference_2D_points: np.ndarray,
               reference_keypoints: np.ndarray,
-              use_ransac: bool):
+              use_ransac: bool,
+              return_masked: bool):
     """ Solve PnP using pre-established 2D-3D correspondences.
 
     Args:
@@ -38,27 +39,7 @@ def solve_pnp(points_2D: np.ndarray,
         Prediction: A prediction namedtuple.
     """
     # Run PnP + RANSAC if there are sufficient matches
-    print("Total Points: ", points_2D.shape[0])
-    if not use_ransac and points_2D.shape[0] > minimum_matches:
-        success, rvec, tvec = cv2.solvePnP(
-            points_3D,
-            points_2D,
-            intrinsics, distortion_coefficients, flags=cv2.SOLVEPNP_ITERATIVE)
-        assert success
-        matrix = matrix_utils.matrix_from_se3(tvec, rvec)
-        quaternion = matrix_utils.matrix_quaternion(matrix)
-        return Prediction(
-            success=True,
-            num_matches=points_2D.shape[0],
-            num_inliers=points_2D.shape[0],
-            reference_inliers=reference_2D_points,
-            query_inliers=np.squeeze(points_2D),
-            points_3d = points_3D,
-            quaternion=quaternion,
-            matrix=matrix,
-            reference_filename=reference_filename,
-            reference_keypoints=reference_keypoints,
-            inlier_mask = None)
+    # print("Total Points: ", points_2D.shape[0])
     
     if points_2D.shape[0] > minimum_matches:
         success, rvec, tvec, inliers = cv2.solvePnPRansac(
@@ -89,21 +70,32 @@ def solve_pnp(points_2D: np.ndarray,
         assert success
         matrix = matrix_utils.matrix_from_se3(tvec, rvec)
         quaternion = matrix_utils.matrix_quaternion(matrix)
-        return Prediction(
-            success=True,
-            num_matches=points_2D.shape[0],
-            num_inliers=len(inliers),
-            # reference_inliers=reference_2D_points[np.squeeze(inliers)], #Reset
-            # query_inliers=np.squeeze(points_2D[np.squeeze(inliers)]),
-            # points_3d = points_3D[np.squeeze(inliers)],  #Reset
-            reference_inliers=reference_2D_points, #Reset
-            query_inliers=np.squeeze(points_2D),
-            points_3d = points_3D,  #Reset
-            quaternion=quaternion,
-            matrix=matrix,
-            reference_filename=reference_filename,
-            reference_keypoints=reference_keypoints,
-            inlier_mask = inliers)
+        if return_masked:
+                return Prediction(
+                success=True,
+                num_matches=points_2D.shape[0],
+                num_inliers=len(inliers),
+                reference_inliers=reference_2D_points[np.squeeze(inliers)], #Reset
+                query_inliers=np.squeeze(points_2D[np.squeeze(inliers)]),
+                points_3d = points_3D[np.squeeze(inliers)],  #Reset
+                quaternion=quaternion,
+                matrix=matrix,
+                reference_filename=reference_filename,
+                reference_keypoints=reference_keypoints,
+                inlier_mask = np.squeeze(inliers))
+        else:
+            return Prediction(
+                success=True,
+                num_matches=points_2D.shape[0],
+                num_inliers=len(inliers),
+                reference_inliers=reference_2D_points, #Reset
+                query_inliers=np.squeeze(points_2D),
+                points_3d = points_3D,  #Reset
+                quaternion=quaternion,
+                matrix=matrix,
+                reference_filename=reference_filename,
+                reference_keypoints=reference_keypoints,
+                inlier_mask = np.squeeze(inliers))
     else:
         return Prediction(
             success=False,
