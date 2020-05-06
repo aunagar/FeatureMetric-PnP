@@ -1,2 +1,1 @@
-# FeatureMetric-BA
-Project for the 3D-Vision course at ETH Zurich.
+# Feature-metric pose refinement on S2D-Hypercolumn matching
