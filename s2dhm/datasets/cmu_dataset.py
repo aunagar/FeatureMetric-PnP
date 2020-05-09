@@ -43,7 +43,7 @@ class ExtendedCMUDataset(BaseDataset):
         """
         binary_model = str(Path(root, 'slice{}'.format(cmu_slice), 'sparse/'))
         triangulation_data_file = \
-            '../data/triangulation/cmu_triangulation_slice_{}.npz'.format(cmu_slice)
+            'data/triangulation/cmu_triangulation_slice_{}.npz'.format(cmu_slice)
         self._data = {
             'name': 'cmu',
             'root': root,

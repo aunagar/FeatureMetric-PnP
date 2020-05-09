@@ -2,22 +2,22 @@
 
 import visualization.plot_correspondences
 
-include 's2dhm/configs/datasets/robotcar.gin'
+include 's2dhm/configs/datasets/cmu.gin'
 include 's2dhm/configs/network/network.gin'
 include 's2dhm/configs/pose_prediction/sparse_to_dense_pose_prediction.gin'
 include 'featurePnP/model.gin'
 
 # Image logs
-plot_correspondences.plot_correspondences.export_folder = 'logs/sparse_to_dense/correspondences/robotcar/'
-plot_correspondences.plot_image_retrieval.export_folder = 'logs/sparse_to_dense/nearest_neighbor/robotcar/'
+plot_correspondences.plot_correspondences.export_folder = 'logs/sparse_to_dense/correspondences/cmu/'
+plot_correspondences.plot_image_retrieval.export_folder = 'logs/sparse_to_dense/nearest_neighbor/cmu/'
 
-RUN_NAME = "Test"
-OUTPUT_DIR = "/cluster/scratch/aunagar/robotcar/run2/"
+RUN_NAME = "slice_5_normal"
+OUTPUT_DIR = "/cluster/scratch/aunagar/S2DHM/cmu/slice_5/"
 CSV_NAME = "featurePnP_summary.csv"
 
 # Pre-trained model weights
-ImageRetrievalModel.checkpoint_path = 'checkpoints/robotcar/weights.pth.tar'
-ImageRetrievalModel.hypercolumn_layers = [14, 17, 21, 24, 28] #[9, 14, 17,21, 24]
+ImageRetrievalModel.checkpoint_path = 'checkpoints/cmu/weights.pth.tar'
+ImageRetrievalModel.hypercolumn_layers =  [14, 17, 21, 24, 28] # [9, 14, 17,21, 24]
 
 # Change only first
 SparseToDensePredictor.output_filename = 'sparse_to_dense_predictions.txt'
@@ -31,13 +31,12 @@ IOgin.csv_name = %CSV_NAME
 IOgin.output_dir = %OUTPUT_DIR
 
 ##Choose Data
-RobotCarDataset.reference_sequences = ['overcast-reference']
-# ['dawn', 'dusk', 'night', 'night-rain', 'overcast-summer', 'overcast-winter', 'rain', 'snow', 'sun']
-RobotCarDataset.query_sequences = ['night-rain']
+CMU_SLICES = ['slice5']
+ExtendedCMUDataset.reference_sequences = %CMU_SLICES
+ExtendedCMUDataset.query_sequences = %CMU_SLICES
 
 ## Model Parameters:
 sparseFeaturePnP.loss_fn = @squared_loss #@cauchy_loss, ...
-sparseFeaturePnP.ratio_threshold = 0.5
 sparseFeaturePnP.n_iters = 50
 
 # Other parameters:

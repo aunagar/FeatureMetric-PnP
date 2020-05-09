@@ -21,7 +21,7 @@ from input_configs.IOgin import IOgin
 parser = argparse.ArgumentParser(
     description = 'Sparse-to-dense Hypercolumn Matching')
 parser.add_argument(
-    '--input_config', type = str, help = 'path to gin config file', default = "input_configs/default_robotcar.gin", required = False)
+    '--input_config', type = str, help = 'path to gin config file', default = "input_configs/default_cmu.gin", required = False)
 parser.add_argument(
     '--dataset', type=str, choices=['robotcar', 'cmu'], required=False, default ="robotcar")
 parser.add_argument(
@@ -63,10 +63,10 @@ def bind_cmu_parameters(cmu_slice, mode):
         gin.bind_parameter('plot_correspondences.plot_image_retrieval.export_folder',
             '../logs/superpoint/nearest_neighbor/cmu/slice_{}/'.format(cmu_slice))
     elif mode=='sparse_to_dense':
-        gin.bind_parameter('SparseToDensePredictor.output_filename',
-            '../results/cmu/slice_{}/sparse_to_dense_predictions.txt'.format(cmu_slice))
-        gin.bind_parameter('SparseToDensePredictor.output_file',
-            '../results/cmu/slice_{}/'.format(cmu_slice))
+        # gin.bind_parameter('SparseToDensePredictor.output_filename',
+        #     '../results/cmu/slice_{}/sparse_to_dense_predictions.txt'.format(cmu_slice))
+        # gin.bind_parameter('SparseToDensePredictor.output_file',
+        #     '../results/cmu/slice_{}/'.format(cmu_slice))
         gin.bind_parameter('plot_correspondences.plot_correspondences.export_folder',
             '../logs/sparse_to_dense/correspondences/cmu/slice_{}/'.format(cmu_slice))
         gin.bind_parameter('plot_correspondences.plot_image_retrieval.export_folder',

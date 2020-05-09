@@ -14,9 +14,9 @@ def fetch_or_compute_ranks(dataset: base_dataset.BaseDataset,
     # Check if precomputed weights exist under
     dataset_name = dataset.data['name']
     if dataset.data['name']=='cmu':
-        file_path = '../data/ranks/cmu/slice_{}.npz'.format(dataset.cmu_slice)
+        file_path = 'data/ranks/cmu/slice_{}.npz'.format(dataset.cmu_slice)
     else:
-        file_path = '../data/ranks/{}.npz'.format(dataset.data['name'])
+        file_path = 'data/ranks/{}.npz'.format(dataset.data['name'])
 
     if os.path.isfile(file_path):
         print('>> Found existing image ranks, loading {}'.format(file_path))

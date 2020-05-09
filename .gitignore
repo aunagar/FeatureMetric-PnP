@@ -24,3 +24,6 @@ output*.txt
 scripts.txt
 *.npz
 data/
+
+submit_robotcar.sh
+submit_cmu.sh

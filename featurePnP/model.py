@@ -306,12 +306,14 @@ class sparseFeaturePnP(nn.Module):
             # We only take supported points
             points_2d_supported = points_2d[mask_supported,:]
             points_3d_supported = points_3d[mask_supported,:]
+            if points_2d_supported.shape[0] == 0:
+                if self.useGPU:
+                    return R.cpu(), t.cpu()
+                else:
+                    return R, t
 
             error = indexing_(feature_map_query, torch.flip(points_2d_supported,(1,)), im_width, im_height) - feature_ref[mask_supported]
             
-            
-
-
             if self.use_ratio_test_:
                 cost = 0.5 * (error**2).sum(-1) # Why 0.5??
                 cost_full, weights, _ = self.loss_fn(cost)
