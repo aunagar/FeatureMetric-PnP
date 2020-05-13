@@ -9,7 +9,7 @@ from pose_prediction import matrix_utils
 # for d2-net (import only if avaible) -- if you want to use d2-net features
 # this module should be visible (path is already added to train.py)
 try:
-    from extract_dense_features import extract_dense_features
+    from s2dhm.d2net_utils.extract_dense_features import extract_dense_features
 except ModuleNotFoundError:
     print("Did not find the module required for d2-net features.")
     pass

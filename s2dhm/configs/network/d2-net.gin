@@ -1,4 +1,4 @@
-import extract_dense_features
+import s2dhm.d2net_utils.extract_dense_features
 
 extract_dense_features.preprocessing = 'torch'
 extract_dense_features.image_size = 512
