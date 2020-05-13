@@ -92,3 +92,39 @@ def plot_detections(left_image_path: str,
     plt.axis('off')
     fig.savefig(str(Path(export_folder, export_filename)))
     plt.close(fig)
+
+def plot_all_points(left_image_path : str,
+                    right_image_path : str,
+                    left_keypoints: List[cv2.KeyPoint],
+                    right_keypoints: List[cv2.KeyPoint],
+                    is_outlier: List[bool],
+                    title: str,
+                    export_folder: str,
+                    export_filename: str):
+    """Display feature correspondences."""
+    left_image = cv2.cvtColor(cv2.imread(left_image_path), cv2.COLOR_BGR2RGB)
+    right_image = cv2.cvtColor(cv2.imread(right_image_path), cv2.COLOR_BGR2RGB)
+    Path(export_folder, export_filename).parent.mkdir(exist_ok=True, parents=True)
+    height = max(left_image.shape[0], right_image.shape[0])
+    width = left_image.shape[1] + right_image.shape[1]
+    output = np.zeros((height, width, 3), dtype=np.uint8)
+    output[0:left_image.shape[0], 0:left_image.shape[1]] = left_image
+    output[0:right_image.shape[0], left_image.shape[1]:] = right_image[:]
+
+    # Draw Lines and Points
+    for i in range(len(left_keypoints)):
+        left = left_keypoints[i].pt
+        right = tuple(sum(x) for x in zip(
+            right_keypoints[i].pt, (left_image.shape[1], 0)))
+        if is_outlier[i]:
+            continue
+            # cv2.line(output, tuple(map(int, left)), tuple(map(int, right)), (255, 0, 0), 2)
+        else:
+            cv2.line(output, tuple(map(int, left)), tuple(map(int, right)), (50, 205, 50), 2)
+
+    fig = plt.figure(figsize=(16, 7), dpi=160)
+    plt.imshow(output)
+    plt.title(title)
+    plt.axis('off')
+    fig.savefig(str(Path(export_folder, export_filename)))
+    plt.close(fig)

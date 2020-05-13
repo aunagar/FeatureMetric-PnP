@@ -14,8 +14,8 @@ include 's2dhm/configs/network/d2-net.gin'
 plot_correspondences.plot_correspondences.export_folder = 'logs/sparse_to_dense/correspondences/cmu/'
 plot_correspondences.plot_image_retrieval.export_folder = 'logs/sparse_to_dense/nearest_neighbor/cmu/'
 
-RUN_NAME = "slice_16"
-OUTPUT_DIR = "/cluster/scratch/aunagar/S2DHM/cmu/geman/slice_16/"
+RUN_NAME = "slice_17"
+OUTPUT_DIR = "/cluster/scratch/aunagar/S2DHM/cmu/geman/slice_17/"
 CSV_NAME = "featurePnP_summary.csv"
 
 # Pre-trained model weights
@@ -37,7 +37,7 @@ IOgin.csv_name = %CSV_NAME
 IOgin.output_dir = %OUTPUT_DIR
 
 ##Choose Data
-CMU_SLICES = ['slice16']
+CMU_SLICES = ['slice17']
 ExtendedCMUDataset.reference_sequences = %CMU_SLICES
 ExtendedCMUDataset.query_sequences = %CMU_SLICES
 

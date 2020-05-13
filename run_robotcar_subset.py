@@ -23,6 +23,12 @@ from pose_prediction import predictor
 from pose_prediction.sparse_to_dense_featuremetric_predictor import SparseToDenseFeatureMetricPnP
 from pose_prediction.optimize_feature_pnp import feature_pnp
 
+# for correspondances
+from pose_prediction import exhaustive_search
+from pose_prediction.keypoint_association import kpt_to_cv2
+from helpers.utils import from_homogeneous, to_homogeneous
+from visualization import plot_correspondences
+
 from visualize_hc import visualize_hc
 from input_configs.IOgin import IOgin
 
@@ -32,7 +38,7 @@ parser = argparse.ArgumentParser(
 parser.add_argument(
     '--input_config', type = str, help = 'path to gin config file', default = "input_configs/subset/default_subset.gin", required = False)
 parser.add_argument(
-    "--output", type=str,help = 'what output the run should generate', choices=['all', 'video', 'visualize_hc', 'None'],
+    "--output", type=str,help = 'what output the run should generate', choices=['all', 'video', 'visualize_hc', 'correspondences','None'],
     default='None')
 parser.add_argument(
     '--ref_image', type = str, help = 'reference image path (relative to Image folder)', required = False)
@@ -157,6 +163,43 @@ if __name__ == '__main__':
         K = torch.from_numpy(filename_to_intrinsics[ref_images[k]][0]).type(torch.DoubleTensor)
         R, t, model = feature_pnp(query_hypercolumn, reference_hypercolumn, prediction, K, (1024, 1024))
 
+        if args.output in ["all", "correspondences"]:
+            outlier_threshold = 2
+            local_reconstruction = filename_to_local_reconstruction[ref_images[k]]
+            pts_3d = local_reconstruction.points_3D
+            ref_2d = local_reconstruction.points_2D
+            R_init = prediction.matrix[:3,:3]
+            t_init = prediction.matrix[:3, 3]
+            reference_sparse_hypercolumn, cell_size, _ = s2dPnP._compute_sparse_reference_hypercolumn(ref_images[k],
+                                                                local_reconstruction)
+            channels, width, height = query_hypercolumn.shape[1:]
+            matches_2D, mask = exhaustive_search.exhaustive_search(
+                query_hypercolumn.squeeze().view((channels, -1)),
+                reference_sparse_hypercolumn,
+                Image.open(ref_images[k]).size[::-1],
+                [width, height],
+                cell_size)
+            matches_2D = matches_2D.cpu().numpy()
+
+            init_query_2d = np.matmul(R_init,pts_3d.T).T + t_init
+            init_query_2d = np.round(from_homogeneous(np.matmul(K.numpy(), init_query_2d.T).T)).astype(int)-1
+
+            final_query_2d = np.matmul(R.numpy(), pts_3d.T).T + t.numpy()
+            final_query_2d = np.round(from_homogeneous(np.matmul(K.numpy(), final_query_2d.T).T)).astype(int)-1
+            
+            init_outliers = np.sqrt(np.mean(np.square(init_query_2d - matches_2D), -1)) > outlier_threshold
+            final_outlier = np.sqrt(np.mean(np.square(final_query_2d - matches_2D), -1)) > outlier_threshold
+            # mask = np.sqrt(np.mean(np.square(init_query_2d - matches_2D), -1)) > 2
+            plot_correspondences.plot_all_points(query_images[k], ref_images[k], kpt_to_cv2(ref_2d[mask]),
+                                                kpt_to_cv2(init_query_2d[mask]),
+                                                init_outliers[mask], title = 'before optimization matches',
+                                                export_folder = io_gin.output_dir + "matching/",
+                                                export_filename = "initial_matches_" + str(k) + ".jpg" )
+            plot_correspondences.plot_all_points(query_images[k], ref_images[k], kpt_to_cv2(ref_2d[mask]),
+                                                kpt_to_cv2(final_query_2d[mask]),
+                                                final_outlier[mask], title = 'after optimization matches',
+                                                export_folder = io_gin.output_dir + "matching/",
+                                                export_filename = "final_matches_" + str(k) + ".jpg")
 
         if args.output in ["all", "visualize_hc"]:
             ref_idx = 0 #Change to select different point!

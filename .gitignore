@@ -27,3 +27,4 @@ data/
 
 submit_robotcar.sh
 submit_cmu.sh
+submit_robotcar_subset.sh
