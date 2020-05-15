@@ -1,6 +1,6 @@
 import s2dhm.d2net_utils.extract_dense_features
 
 extract_dense_features.preprocessing = 'torch'
-extract_dense_features.image_size = 512
+extract_dense_features.image_size = 1024
 extract_dense_features.multiscale = False
 extract_dense_features.model_file = "externals/d2-net/models/d2_tf.pth"
