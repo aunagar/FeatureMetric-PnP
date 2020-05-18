@@ -18,7 +18,7 @@ CSV_NAME = "summary.csv"
 
 # Pre-trained model weights
 ImageRetrievalModel.checkpoint_path = 'checkpoints/robotcar/weights.pth.tar'
-ImageRetrievalModel.hypercolumn_layers = [9, 14, 17,21, 24]
+ImageRetrievalModel.hypercolumn_layers = [14, 17,21, 24, 28]
 
 # Output parameters
 IOgin.name = %RUN_NAME
