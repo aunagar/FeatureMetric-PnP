@@ -38,7 +38,7 @@ parser = argparse.ArgumentParser(
 parser.add_argument(
     '--input_config', type = str, help = 'path to gin config file', default = "input_configs/subset/default_subset.gin", required = False)
 parser.add_argument(
-    "--output", type=str,help = 'what output the run should generate', choices=['all', 'video', 'visualize_hc', 'correspondences','None'],
+    "--output", type=str,help = 'what output the run should generate', choices=['all', 'video', 'visualize_hc', 'correspondences', 'None'],
     default='None')
 parser.add_argument(
     '--ref_image', type = str, help = 'reference image path (relative to Image folder)', required = False)
@@ -72,7 +72,7 @@ def get_pose_predictor(pose_predictor_cls: predictor.PosePredictor,
 
 if __name__ == '__main__':
     args = parser.parse_args()
-    DATA_PATH = "/nfs/nas12.ethz.ch/fs1201/infk_ivc_students/252-0579-00L/ntselepidis/S2DHM_datasets/RobotCar-Seasons/"
+    DATA_PATH = "../RobotCar-Seasons/"
     
     result_frame = pd.DataFrame(columns=["reference_image_origin", "query_image_origin","num_initial_matches", "num_final_matches", "initial_cost", "final_cost","track_pickle_path"])
 
@@ -186,24 +186,39 @@ if __name__ == '__main__':
 
             final_query_2d = np.matmul(R.numpy(), pts_3d.T).T + t.numpy()
             final_query_2d = np.round(from_homogeneous(np.matmul(K.numpy(), final_query_2d.T).T)).astype(int)-1
-            
+
             init_outliers = np.sqrt(np.mean(np.square(init_query_2d - matches_2D), -1)) > outlier_threshold
             final_outlier = np.sqrt(np.mean(np.square(final_query_2d - matches_2D), -1)) > outlier_threshold
             # mask = np.sqrt(np.mean(np.square(init_query_2d - matches_2D), -1)) > 2
-            plot_correspondences.plot_all_points(query_images[k], ref_images[k], kpt_to_cv2(ref_2d[mask]),
+            #plot_correspondences.plot_all_points(query_images[k], ref_images[k], kpt_to_cv2(ref_2d[mask]),
+            #                                    kpt_to_cv2(init_query_2d[mask]),
+            #                                    init_outliers[mask], title = 'before optimization matches',
+            #                                    export_folder = io_gin.output_dir + "matching/",
+            #                                    export_filename = "initial_matches_" + str(k) + ".jpg" )
+            #plot_correspondences.plot_all_points(query_images[k], ref_images[k], kpt_to_cv2(ref_2d[mask]),
+            #                                    kpt_to_cv2(final_query_2d[mask]),
+            #                                    final_outlier[mask], title = 'after optimization matches',
+            #                                    export_folder = io_gin.output_dir + "matching/",
+            #                                    export_filename = "final_matches_" + str(k) + ".jpg")
+            plot_correspondences.plot_points_on_reference_image(
+                                                ref_images[k],
+                                                kpt_to_cv2(ref_2d[mask]),
+                                                init_outliers[mask], title = 'Keypoints on reference image',
+                                                export_folder = io_gin.output_dir + "points/",
+                                                export_filename = "rpoints_" + str(k) + ".jpg" )
+            plot_correspondences.plot_points_before_and_after_optimization(
+                                                query_images[k],
                                                 kpt_to_cv2(init_query_2d[mask]),
-                                                init_outliers[mask], title = 'before optimization matches',
-                                                export_folder = io_gin.output_dir + "matching/",
-                                                export_filename = "initial_matches_" + str(k) + ".jpg" )
-            plot_correspondences.plot_all_points(query_images[k], ref_images[k], kpt_to_cv2(ref_2d[mask]),
                                                 kpt_to_cv2(final_query_2d[mask]),
-                                                final_outlier[mask], title = 'after optimization matches',
-                                                export_folder = io_gin.output_dir + "matching/",
-                                                export_filename = "final_matches_" + str(k) + ".jpg")
+                                                init_outliers[mask], title = 'Keypoints before and after optimization',
+                                                export_folder = io_gin.output_dir + "points/",
+                                                export_filename = "qpoints_" + str(k) + ".jpg" )
 
         if args.output in ["all", "visualize_hc"]:
             ref_idx = 0 #Change to select different point!
             ref_p = prediction.reference_inliers[ref_idx]
+            r_img = cv2.cvtColor(cv2.imread(ref_images[k]), cv2.COLOR_BGR2RGB)
+            q_img = cv2.cvtColor(cv2.imread(query_images[k]), cv2.COLOR_BGR2RGB)
             cv2.circle(r_img, tuple(ref_p.astype(int)), 2, (256, 0, 0), 3)
             scale = reference_hypercolumn.shape[-1]/r_img.shape[1]
             ref_p = (scale*ref_p).astype(int)

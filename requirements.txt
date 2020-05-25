@@ -1,3 +1,8 @@
+gin-config
+kornia
+matplotlib
 numpy
 opencv-python
-gin-config
+pandas
+sklearn
+tqdm
