@@ -28,6 +28,7 @@ from pose_prediction import exhaustive_search
 from pose_prediction.keypoint_association import kpt_to_cv2
 from helpers.utils import from_homogeneous, to_homogeneous
 from visualization import plot_correspondences
+from visualization.create_video import *
 
 from visualize_hc import visualize_hc
 from input_configs.IOgin import IOgin
@@ -41,9 +42,9 @@ parser.add_argument(
     "--output", type=str,help = 'what output the run should generate', choices=['all', 'video', 'visualize_hc', 'correspondences', 'None'],
     default='None')
 parser.add_argument(
-    '--ref_image', type = str, help = 'reference image path (relative to Image folder)', required = False)
+    '--ref_image', type = str, help = 'reference image path (relative to Image folder)', required = False)#, default='overcast-reference/rear/1417176981834751.jpg)
 parser.add_argument(
-    '--query_image', type = str, help = 'query image path (relative to Image folder)', required = False)
+    '--query_image', type = str, help = 'query image path (relative to Image folder)', required = False)#, default='night-rain/rear/1418840689734892.jpg')
 parser.add_argument(
     '--writetrack', type=bool, help = 'Whether the track should be written', required=False, default=False)
 
@@ -161,7 +162,7 @@ if __name__ == '__main__':
         prediction, query_hypercolumn, reference_hypercolumn = s2dPnP.run(query_images[k], ref_images[k])
 
         K = torch.from_numpy(filename_to_intrinsics[ref_images[k]][0]).type(torch.DoubleTensor)
-        R, t, model = feature_pnp(query_hypercolumn, reference_hypercolumn, prediction, K, (1024, 1024))
+        R, t, model = feature_pnp(query_hypercolumn, reference_hypercolumn, prediction, K, (1024, 1024), track=track)
 
         if args.output in ["all", "correspondences"]:
             outlier_threshold = 2
@@ -230,7 +231,7 @@ if __name__ == '__main__':
                         q_img, r_img)
 
         if args.output in ["all", "video"]:
-            frames = frames_from_track(query_image, track_dict, 50)
+            frames = frames_from_track(query_images[k], model.track_, 50)
             save_video(frames,io_gin.output_dir+"_video_"+str(k)+".mp4") #Change
 
         if args.writetrack:
