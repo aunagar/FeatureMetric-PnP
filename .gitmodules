@@ -1,0 +1,3 @@
+[submodule "externals/d2-net"]
+	path = externals/d2-net
+	url = https://github.com/mihaidusmanu/d2-net.git
