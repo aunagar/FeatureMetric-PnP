@@ -42,7 +42,7 @@ def feature_pnp_multi(query_hypercolumns, reference_hypercolumns, prediction, K,
     model = sparseFeaturePnP() #Parameters from gin!
     for i in range(3):
         R, t = model(pts3D[inliers,:], feature_ref[inliers,:], feature_map_query, feature_grad_x, feature_grad_y,
-        K, image_shape[0], image_shape[1], R_init=R, t_init=t, track = track) #Remove if no more needed
+        K, R, t, image_shape[0], image_shape[1], track = track) #Remove if no more needed
         inliers = find_inliers(pts3D, R, t, feature_map_query, feature_ref, K,image_shape[0], image_shape[1])
     return R, t, model
 
@@ -63,10 +63,10 @@ def feature_pnp(query_hypercolumns, reference_hypercolumns, prediction, K, image
     model = sparseFeaturePnP() #Parameters from gin!
     if feature_pyramid is None:
         R, t = model(pts3D, feature_ref, feature_map_query, feature_grad_x, feature_grad_y,
-        K, image_shape[0], image_shape[1], R_init=R, t_init=t, track = track) #Remove if no more needed
+        K, R, t, image_shape[0], image_shape[1], track = track) #Remove if no more needed
     else:
         R, t = model.multilevel_optimization(feature_pyramid, pts3D, feature_ref, feature_map_query, feature_grad_x, feature_grad_y,
-        K, image_shape[0], image_shape[1], R_init=R, t_init=t, track = track)
+        K, R, t,  image_shape[0], image_shape[1], track = track)
     
     return R, t, model
 
