@@ -7,15 +7,12 @@ include 's2dhm/configs/network/network.gin'
 include 's2dhm/configs/pose_prediction/sparse_to_dense_pose_prediction.gin'
 include 'featurePnP/model.gin'
 
-# for d2net
-include 's2dhm/configs/network/d2-net.gin'
-
 # Image logs
 plot_correspondences.plot_correspondences.export_folder = 'logs/sparse_to_dense/correspondences/cmu/'
 plot_correspondences.plot_image_retrieval.export_folder = 'logs/sparse_to_dense/nearest_neighbor/cmu/'
 
-RUN_NAME = "slice_5_normal"
-OUTPUT_DIR = "results/cmu/slice_5" # CHANGE THIS
+RUN_NAME = "slice_15_normal"
+OUTPUT_DIR = "results/cmu/slice_15/" # CHANGE THIS
 CSV_NAME = "featurePnP_summary.csv"
 
 # Pre-trained model weights
@@ -28,28 +25,24 @@ SparseToDensePredictor.output_csvname = %CSV_NAME
 SparseToDensePredictor.output_path = %OUTPUT_DIR
 SparseToDensePredictor.track = False
 
-# for d2-net features
-SparseToDensePredictor.features = 's2dhm' # ['s2dhm' or 'd2-net']
-
 # Output parameters
 IOgin.name = %RUN_NAME
 IOgin.csv_name = %CSV_NAME
 IOgin.output_dir = %OUTPUT_DIR
 
 ##Choose Data
-CMU_SLICES = ['slice17']
+CMU_SLICES = ['slice15']
 ExtendedCMUDataset.reference_sequences = %CMU_SLICES
 ExtendedCMUDataset.query_sequences = %CMU_SLICES
 
 ## Model Parameters:
-sparseFeaturePnP.loss_fn = @geman_mcclure_loss # @squared_loss #@cauchy_loss, ...
-sparseFeaturePnP.ratio_threshold = None
-sparseFeaturePnP.n_iters = 100
+sparseFeaturePnP.loss_fn = @squared_loss #@cauchy_loss, ...
+sparseFeaturePnP.n_iters = 50
 
 # Other parameters:
 
 get_pose_predictor.pose_predictor_cls = @SparseToDensePredictor
-SparseToDensePredictor.top_N = 30
+SparseToDensePredictor.top_N = 10
 SparseToDensePredictor.track = False # do you want to track all the points during optimization?
 
 # PnP Parameters
@@ -64,4 +57,3 @@ exhaustive_search.factor = 0.12
 
 # Optimizer parameters
 optimize_feature_pnp.image_shape = [1024, 1024]
-
