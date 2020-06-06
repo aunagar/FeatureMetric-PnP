@@ -7,6 +7,9 @@ include 's2dhm/configs/network/network.gin'
 include 's2dhm/configs/pose_prediction/sparse_to_dense_pose_prediction.gin'
 include 'featurePnP/model.gin'
 
+# for d2net
+include 's2dhm/configs/network/d2-net.gin'
+
 # Image logs
 plot_correspondences.plot_correspondences.export_folder = 'logs/sparse_to_dense/correspondences/cmu/'
 plot_correspondences.plot_image_retrieval.export_folder = 'logs/sparse_to_dense/nearest_neighbor/cmu/'
@@ -25,19 +28,23 @@ SparseToDensePredictor.output_csvname = %CSV_NAME
 SparseToDensePredictor.output_path = %OUTPUT_DIR
 SparseToDensePredictor.track = False
 
+# for d2-net features
+SparseToDensePredictor.features = 's2dhm' # ['s2dhm' or 'd2-net']
+
 # Output parameters
 IOgin.name = %RUN_NAME
 IOgin.csv_name = %CSV_NAME
 IOgin.output_dir = %OUTPUT_DIR
 
 ##Choose Data
-CMU_SLICES = ['slice5']
+CMU_SLICES = ['slice17']
 ExtendedCMUDataset.reference_sequences = %CMU_SLICES
 ExtendedCMUDataset.query_sequences = %CMU_SLICES
 
 ## Model Parameters:
-sparseFeaturePnP.loss_fn = @squared_loss #@cauchy_loss, ...
-sparseFeaturePnP.n_iters = 50
+sparseFeaturePnP.loss_fn = @geman_mcclure_loss # @squared_loss #@cauchy_loss, ...
+sparseFeaturePnP.ratio_threshold = None
+sparseFeaturePnP.n_iters = 100
 
 # Other parameters:
 

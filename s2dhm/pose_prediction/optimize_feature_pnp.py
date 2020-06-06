@@ -6,8 +6,13 @@ import torch
 
 from pose_prediction import matrix_utils
 
-# this is a hack
-# sys.path.insert(0, os.path.abspath('../../'))
+# for d2-net (import only if avaible) -- if you want to use d2-net features
+# this module should be visible (path is already added to train.py)
+try:
+    from s2dhm.d2net_utils.extract_dense_features import extract_dense_features
+except ModuleNotFoundError:
+    print("Did not find the module required for d2-net features.")
+    pass
 
 from model import sparseFeaturePnP, find_inliers
 from helpers.utils import sobel_filter
@@ -66,11 +71,15 @@ def feature_pnp(query_hypercolumns, reference_hypercolumns, prediction, K, image
     return R, t, model
 
 @gin.configurable
-def optimize_feature_pnp(query_hypercolumns, net, prediction, K, image_shape, track = False, feature_pyramid = None):
+def optimize_feature_pnp(query_hypercolumns, net, prediction, K, image_shape, track = False, feature_pyramid = None, features = 's2dhm'):
     K = torch.from_numpy( K )
     print("Initial : {}".format(list(prediction.quaternion) + list(prediction.matrix[:3,3])))
 
-    reference_hypercolumns, _ = net.compute_hypercolumn( [prediction.reference_filename], to_cpu=False, resize=True )
+    if features == 'd2-net':
+        reference_hypercolumns = extract_dense_features(
+            [prediction.reference_filename], to_cpu = False, resize = True)
+    else:
+        reference_hypercolumns, _ = net.compute_hypercolumn( [prediction.reference_filename], to_cpu=False, resize=True )
 
     R, t, model = feature_pnp(query_hypercolumns, reference_hypercolumns, prediction, K, image_shape, track = track, feature_pyramid = feature_pyramid)
     

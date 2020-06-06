@@ -16,11 +16,19 @@ from pose_prediction.optimize_feature_pnp import optimize_feature_pnp
 import pandas as pd
 import pickle
 
+# for d2-net (import only if avaible) -- if you want to use d2-net features
+# this module should be visible (path is already added to train.py)
+try:
+    from s2dhm.d2net_utils.extract_dense_features import extract_dense_features
+except ModuleNotFoundError:
+    print("Did not find the module required for d2-net features.")
+    pass
+
 @gin.configurable
 class SparseToDensePredictor(predictor.PosePredictor):
     """Sparse-to-dense Predictor Class.
     """
-    def __init__(self, top_N: int, track: bool, **kwargs): #Revert here
+    def __init__(self, top_N: int, track: bool, features: str, **kwargs): #Revert here
         """Initialize class attributes.
 
         Args:
@@ -36,13 +44,19 @@ class SparseToDensePredictor(predictor.PosePredictor):
         self._filename_to_local_reconstruction = \
             self._dataset.data['filename_to_local_reconstruction']
         self.track = track
+        self.features = features # Added this variable to sparse-to-dense gin (default is 's2dhm')
 
     def _compute_sparse_reference_hypercolumn(self, reference_image,
                                               local_reconstruction):
         """Compute hypercolumns at every visible 3D point reprojection."""
-        reference_dense_hypercolumn, image_size = \
-            self._network.compute_hypercolumn(
-                [reference_image], to_cpu=False, resize=True)
+        if self.features == 'd2-net':
+            reference_dense_hypercolumn = extract_dense_features(
+                [reference_image], to_cpu = False)
+        else:
+            reference_dense_hypercolumn, image_size = \
+                self._network.compute_hypercolumn(
+                    [reference_image], to_cpu=False, resize=True)
+
         dense_keypoints, cell_size = keypoint_association.generate_dense_keypoints(
             (reference_dense_hypercolumn.shape[2:]),
             Image.open(reference_image).size[::-1], to_numpy=True)
@@ -74,9 +88,14 @@ class SparseToDensePredictor(predictor.PosePredictor):
             query_image = self._dataset.data['query_image_names'][i] #Name
             if query_image not in self._filename_to_intrinsics:
                 continue
-
-            query_dense_hypercolumn, _ = self._network.compute_hypercolumn(
-                [query_image], to_cpu=False, resize=True)
+            
+            # only if self.features is d2-net (we use d2-net features)
+            if self.features == 'd2-net':
+                query_dense_hypercolumn = extract_dense_features(
+                                [query_image], to_cpu = False, resize = True)
+            else: # else s2dhm features
+                query_dense_hypercolumn, _ = self._network.compute_hypercolumn(
+                    [query_image], to_cpu=False, resize=True)
             channels, width, height = query_dense_hypercolumn.shape[1:]
             query_dense_hypercolumn = query_dense_hypercolumn.squeeze().view(
                 (channels, -1))
@@ -146,7 +165,8 @@ class SparseToDensePredictor(predictor.PosePredictor):
                                                                     best_prediction.reference_filename) )
                                           
                     t, quaternion, model = optimize_feature_pnp(query_dense_hypercolumn.view(channels, width, height)[None, ...],
-                                        net = self._network, prediction = best_prediction, K = intrinsics, track = self.track)
+                                        net = self._network, prediction = best_prediction, K = intrinsics, track = self.track,
+                                        features = self.features)
                     
                     # track file
                     if self.track:

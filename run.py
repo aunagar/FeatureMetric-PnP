@@ -10,6 +10,7 @@ import numpy as np
 sys.path.append('s2dhm/') #Should be autodetected later in __init__.py file!
 sys.path.append('featurePnP/')
 sys.path.append('visualization/')
+sys.path.append('externals/d2-net/') # if you have a d2-net directory
 
 from image_retrieval import rank_images
 from network import network
@@ -21,7 +22,7 @@ from input_configs.IOgin import IOgin
 parser = argparse.ArgumentParser(
     description = 'Sparse-to-dense Hypercolumn Matching')
 parser.add_argument(
-    '--input_config', type = str, help = 'path to gin config file', default = "input_configs/default_cmu.gin", required = False)
+    '--input_config', type = str, help = 'path to gin config file', default = "input_configs/default_robotcar.gin", required = False)
 parser.add_argument(
     '--dataset', type=str, choices=['robotcar', 'cmu'], required=False, default ="robotcar")
 parser.add_argument(

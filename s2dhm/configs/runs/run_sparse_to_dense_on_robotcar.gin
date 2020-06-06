@@ -4,6 +4,9 @@ include 'configs/datasets/robotcar.gin'
 include 'configs/network/network.gin'
 include 'configs/pose_prediction/sparse_to_dense_pose_prediction.gin'
 
+# for d2net
+include 'configs/network/d2-net.gin'
+
 # Pre-trained model weights
 ImageRetrievalModel.checkpoint_path = '../checkpoints/robotcar/weights.pth.tar'
 ## Philipp

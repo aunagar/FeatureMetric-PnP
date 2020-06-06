@@ -7,6 +7,9 @@ get_pose_predictor.pose_predictor_cls = @SparseToDensePredictor
 SparseToDensePredictor.top_N = 30
 SparseToDensePredictor.track = True # do you want to track all the points during optimization?
 
+## for d2-net features
+SparseToDensePredictor.features = 's2dhm' #['s2dhm', 'd2-net']
+
 # PnP Parameters
 solve_pnp.reprojection_threshold = 12.0
 solve_pnp.minimum_inliers = 12
