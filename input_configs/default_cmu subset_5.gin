@@ -12,7 +12,7 @@ plot_correspondences.plot_correspondences.export_folder = 'logs/sparse_to_dense/
 plot_correspondences.plot_image_retrieval.export_folder = 'logs/sparse_to_dense/nearest_neighbor/cmu/'
 
 RUN_NAME = "slice_5_normal"
-OUTPUT_DIR = "results/cmu/slice_5" # CHANGE THIS
+OUTPUT_DIR = "results/cmu/slice_5/" # CHANGE THIS
 CSV_NAME = "featurePnP_summary.csv"
 
 # Pre-trained model weights
@@ -42,7 +42,7 @@ sparseFeaturePnP.n_iters = 50
 # Other parameters:
 
 get_pose_predictor.pose_predictor_cls = @SparseToDensePredictor
-SparseToDensePredictor.top_N = 30
+SparseToDensePredictor.top_N = 10
 SparseToDensePredictor.track = False # do you want to track all the points during optimization?
 
 # PnP Parameters
@@ -57,4 +57,3 @@ exhaustive_search.factor = 0.12
 
 # Optimizer parameters
 optimize_feature_pnp.image_shape = [1024, 1024]
-
