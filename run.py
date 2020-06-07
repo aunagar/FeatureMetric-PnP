@@ -34,6 +34,11 @@ parser.add_argument('--log_images', action='store_true')
 parser.add_argument('--cache_results', type = bool, required=False, default=False)
 parser.add_argument('--cmu_slice', type=int, default=2)
 
+# Enable slicing
+parser.add_argument('--start', type=int, default=-1)
+parser.add_argument('--end', type=int, default=-1)
+
+
 @gin.configurable
 def get_dataset_loader(dataset_loader_cls):
     return dataset_loader_cls
@@ -49,7 +54,7 @@ def get_pose_predictor(pose_predictor_cls: predictor.PosePredictor,
                               ranks=ranks,
                               log_images=log_images)
 
-def bind_cmu_parameters(cmu_slice, mode):
+def bind_cmu_parameters(cmu_slice, mode, start=-1, end=-1):
     """Update CMU gin parameters to match chosen slice."""
     gin.bind_parameter('ExtendedCMUDataset.cmu_slice', cmu_slice)
     if mode=='nearest_neighbor':
@@ -65,6 +70,11 @@ def bind_cmu_parameters(cmu_slice, mode):
         gin.bind_parameter('plot_correspondences.plot_image_retrieval.export_folder',
             '../logs/superpoint/nearest_neighbor/cmu/slice_{}/'.format(cmu_slice))
     elif mode=='sparse_to_dense':
+        if ( (start != -1) or (end != -1) ):
+            gin.bind_parameter('SparseToDensePredictor.output_filename',
+                    'sparse_to_dense_predictions_{}_{}.txt'.format(start, end))
+            gin.bind_parameter('SparseToDensePredictor.output_csvname',
+                    'featurePnP_summary_{}_{}.csv'.format(start, end))
         # gin.bind_parameter('SparseToDensePredictor.output_filename',
         #     '../results/cmu/slice_{}/sparse_to_dense_predictions.txt'.format(cmu_slice))
         # gin.bind_parameter('SparseToDensePredictor.output_file',
@@ -92,7 +102,7 @@ def main(args):
 
     # For CMU, pick a slice
     if args.dataset=='cmu':
-        bind_cmu_parameters(args.cmu_slice, args.mode)
+        bind_cmu_parameters(args.cmu_slice, args.mode, args.start, args.end)
     
     io_gin = IOgin(args.input_config) # Parameters from Input file (Load correct dataset)
 
@@ -112,7 +122,7 @@ def main(args):
                                         ranks=ranks,
                                         log_images=args.log_images)
 
-    pose_predictor.save(pose_predictor.run())
+    pose_predictor.save(pose_predictor.run(args.start, args.end))
 
     with open(io_gin.output_dir + "input_operative_str.txt", "w") as doc:
         doc.write(str(gin.operative_config_str()))

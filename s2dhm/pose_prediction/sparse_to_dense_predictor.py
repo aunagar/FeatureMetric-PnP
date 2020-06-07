@@ -61,14 +61,15 @@ class SparseToDensePredictor(predictor.PosePredictor):
         dense_keypoints, cell_size = keypoint_association.generate_dense_keypoints(
             (reference_dense_hypercolumn.shape[2:]),
             Image.open(reference_image).size[::-1], to_numpy=True)
-        dense_keypoints = torch.from_numpy(dense_keypoints).cuda()
+        device = torch.device('cuda' if torch.cuda.is_available() else "cpu")
+        dense_keypoints = torch.from_numpy(dense_keypoints).to(device)
         reference_sparse_hypercolumns = \
             keypoint_association.fast_sparse_keypoint_descriptor(
                 [local_reconstruction.points_2D.T],
                 dense_keypoints, reference_dense_hypercolumn)[0]
         return reference_sparse_hypercolumns, cell_size
 
-    def run(self):
+    def run(self, start=-1, end=-1):
         """Run the sparse-to-dense pose predictor."""
 
         print('>> Generating pose predictions using sparse-to-dense matching...')
@@ -76,6 +77,8 @@ class SparseToDensePredictor(predictor.PosePredictor):
 
         tqdm_bar = tqdm(enumerate(self._ranks.T), total=self._ranks.shape[1],
                         unit='images', leave=True)
+        #print('shape')
+        #print(self._ranks.shape)
         # Pandas DF
         result_frame = pd.DataFrame(columns=["reference_image_origin", "query_image_origin","num_initial_matches", "num_final_matches", "initial_cost", "final_cost","track_pickle_path"])
         cnt = -1
@@ -83,9 +86,22 @@ class SparseToDensePredictor(predictor.PosePredictor):
         if self.cache:
             cache_dict = dict()
 
+        # If start and end are unset -> Run on whole slice
+        if (start == -1):
+            start = 0
+        if (end == -1):
+            end = self._ranks.shape[1]-1
+
         for i, rank in tqdm_bar: #For each query image
             # Compute the query dense hypercolumn
             cnt+=1
+
+            if ( cnt < start or cnt > end):
+                print('Skipping cnt = %d' % cnt)
+                continue
+
+            print("Working on cnt = %d" % cnt)
+
             # if cnt != 16:
             #     continue
             
