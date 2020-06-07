@@ -31,6 +31,7 @@ parser.add_argument(
     '--mode', type=str, choices=['nearest_neighbor', 'superpoint', 'sparse_to_dense'],
     default='sparse_to_dense')
 parser.add_argument('--log_images', action='store_true')
+parser.add_argument('--cache_results', type = bool, required=False, default=False)
 parser.add_argument('--cmu_slice', type=int, default=2)
 
 @gin.configurable

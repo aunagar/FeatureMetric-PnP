@@ -28,7 +28,7 @@ except ModuleNotFoundError:
 class SparseToDensePredictor(predictor.PosePredictor):
     """Sparse-to-dense Predictor Class.
     """
-    def __init__(self, top_N: int, track: bool, features: str, **kwargs): #Revert here
+    def __init__(self, top_N: int, track: bool, features: str, cache: bool, **kwargs): #Revert here
         """Initialize class attributes.
 
         Args:
@@ -45,6 +45,7 @@ class SparseToDensePredictor(predictor.PosePredictor):
             self._dataset.data['filename_to_local_reconstruction']
         self.track = track
         self.features = features # Added this variable to sparse-to-dense gin (default is 's2dhm')
+        self.cache = cache # ideally this should be part of predictor.PosePredictor (once we implement for all pose-predictor classes)
 
     def _compute_sparse_reference_hypercolumn(self, reference_image,
                                               local_reconstruction):
@@ -78,6 +79,9 @@ class SparseToDensePredictor(predictor.PosePredictor):
         # Pandas DF
         result_frame = pd.DataFrame(columns=["reference_image_origin", "query_image_origin","num_initial_matches", "num_final_matches", "initial_cost", "final_cost","track_pickle_path"])
         cnt = -1
+
+        if self.cache:
+            cache_dict = dict()
 
         for i, rank in tqdm_bar: #For each query image
             # Compute the query dense hypercolumn
@@ -151,9 +155,24 @@ class SparseToDensePredictor(predictor.PosePredictor):
                         predictions.append(prediction)
                 else:
                     predictions.append(prediction)
-            
-            
+                if self.cache:
+                    local_res= {
+                    'reference_filename' : prediction.reference_filename,
+                    'success': prediction.success,
+                    'query_2D' : points_2D,
+                    'reference_2D': local_reconstruction.points_2D[mask],
+                    'points_3D': points_3D,
+                    'num_matches': prediction.num_matches,
+                    'num_inliers':prediction.num_inliers,
+                    'inlier_mask':prediction.inlier_mask,
+                    'quaternion':prediction.quaternion,
+                    'matrix':prediction.matrix,
+                    }
+                    cache_dict[query_image + ":" + prediction.reference_filename] = local_res
+
             if len(predictions):
+                if self.cache:
+                    np.savez(self._output_path + self._cache_file, **cache_dict)
                 export, best_prediction = self._choose_best_prediction(
                     predictions, query_image)
                 #please note we are appending the pose twice into the output
@@ -206,6 +225,7 @@ class SparseToDensePredictor(predictor.PosePredictor):
                     "[{} inliers]".format(best_prediction.num_inliers))
                 tqdm_bar.refresh()
         result_frame.to_csv(self._output_path + self._output_csvname, sep=";")
+
         return output
 
     def save(self, predictions: List):
