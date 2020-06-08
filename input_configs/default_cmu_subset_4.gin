@@ -23,6 +23,7 @@ ImageRetrievalModel.hypercolumn_layers =  [9, 14, 17,21, 24] #[14, 17, 21, 24, 2
 SparseToDensePredictor.output_filename = 'sparse_to_dense_predictions.txt'
 SparseToDensePredictor.output_csvname = %CSV_NAME
 SparseToDensePredictor.output_path = %OUTPUT_DIR
+SparseToDensePredictor.cache_filename = 'cache_results.npz'
 SparseToDensePredictor.track = False
 
 # Output parameters

@@ -184,7 +184,7 @@ class SparseToDensePredictor(predictor.PosePredictor):
 
             if len(predictions):
                 if self._cache_results:
-                    np.savez(self._output_path + self._cache_filename, **cache_dict)
+                    np.savez(self._output_path + "cached_matches/"+self._cache_filename, **cache_dict)
                 export, best_prediction = self._choose_best_prediction(
                     predictions, query_image)
                 #please note we are appending the pose twice into the output

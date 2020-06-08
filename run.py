@@ -77,6 +77,8 @@ def bind_cmu_parameters(cmu_slice, mode, start=-1, end=-1):
                     'sparse_to_dense_predictions_{}_{}.txt'.format(start, end))
             gin.bind_parameter('SparseToDensePredictor.output_csvname',
                     'featurePnP_summary_{}_{}.csv'.format(start, end))
+            gin.bind_parameter('SparseToDensePredictor.cache_filename',
+                    'cache_matches_{}_{}.npz'.format(start, end))
         # gin.bind_parameter('SparseToDensePredictor.output_filename',
         #     '../results/cmu/slice_{}/sparse_to_dense_predictions.txt'.format(cmu_slice))
         # gin.bind_parameter('SparseToDensePredictor.output_file',

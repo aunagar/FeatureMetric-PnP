@@ -19,6 +19,7 @@ then
         --dataset=cmu \
         --input_config=input_configs/default_cmu_subset_$CMU_SLICE.gin \
         --cmu_slice=$CMU_SLICE \
+	--cache_results \
         --start=$start \
         --end=$end
 fi
@@ -34,6 +35,7 @@ do
         --dataset=cmu \
         --input_config=input_configs/default_cmu_subset_$CMU_SLICE.gin \
         --cmu_slice=$CMU_SLICE \
+	--cache_results \
         --start=$start \
         --end=$end
 done
