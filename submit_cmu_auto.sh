@@ -1,5 +1,6 @@
 #/bin/bash
 CORES=2
+TIME=00:05
 CMU_SLICE=13
 NumImages=2
 SubSliceSize=2
@@ -12,7 +13,7 @@ then
     start=0
     end=$(($ModSubSlices-1))
     echo $start $end
-    bsub -n $CORES -W 00:05 -R 'rusage[mem=32768]' -J "cmu_"$CMU_SLICE"_"$start"_"$end -oo "output_cmu_"$CMU_SLICE"_"$start"_"$end".txt" \
+    bsub -n $CORES -W $TIME -R 'rusage[mem=32768]' -J "cmu_"$CMU_SLICE"_"$start"_"$end -oo "output_cmu_"$CMU_SLICE"_"$start"_"$end".txt" \
         python run.py \
         --dataset=cmu \
         --input_config=input_configs/default_cmu_subset_$CMU_SLICE.gin \
@@ -27,7 +28,7 @@ do
     start=$i
     end=$(($i+$SubSliceSize-1))
     echo $start $end
-    bsub -n $CORES -W 00:05 -R 'rusage[mem=32768]' -J "cmu_"$CMU_SLICE"_"$start"_"$end -oo "output_cmu_"$CMU_SLICE"_"$start"_"$end".txt" \
+    bsub -n $CORES -W $TIME -R 'rusage[mem=32768]' -J "cmu_"$CMU_SLICE"_"$start"_"$end -oo "output_cmu_"$CMU_SLICE"_"$start"_"$end".txt" \
         python run.py \
         --dataset=cmu \
         --input_config=input_configs/default_cmu_subset_$CMU_SLICE.gin \
