@@ -28,7 +28,7 @@ except ModuleNotFoundError:
 class SparseToDensePredictor(predictor.PosePredictor):
     """Sparse-to-dense Predictor Class.
     """
-    def __init__(self, top_N: int, track: bool, features: str, cache: bool, **kwargs): #Revert here
+    def __init__(self, top_N: int, track: bool, features: str, **kwargs): #Revert here
         """Initialize class attributes.
 
         Args:
@@ -45,7 +45,6 @@ class SparseToDensePredictor(predictor.PosePredictor):
             self._dataset.data['filename_to_local_reconstruction']
         self.track = track
         self.features = features # Added this variable to sparse-to-dense gin (default is 's2dhm')
-        self.cache = cache # ideally this should be part of predictor.PosePredictor (once we implement for all pose-predictor classes)
 
     def _compute_sparse_reference_hypercolumn(self, reference_image,
                                               local_reconstruction):

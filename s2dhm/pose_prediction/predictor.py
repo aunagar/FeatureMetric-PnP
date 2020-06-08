@@ -22,7 +22,8 @@ class PosePredictor():
                        output_filename: str,
                        output_csvname: str,
                        cache_filename: str,
-                       log_images: bool):
+                       log_images: bool,
+                       cache_results: bool):
         """Initialize base class attributes.
 
         Args:
@@ -39,6 +40,7 @@ class PosePredictor():
         self._output_csvname = output_csvname
         self._cache_filename = cache_filename
         self._log_images = log_images
+        self._cache_results = cache_results
         Path(self._output_path).mkdir(exist_ok=True, parents=True) # Autocreate output folder!
 
     def _choose_best_prediction(self, predictions, query_image):

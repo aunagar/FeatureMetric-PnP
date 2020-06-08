@@ -31,7 +31,7 @@ parser.add_argument(
     '--mode', type=str, choices=['nearest_neighbor', 'superpoint', 'sparse_to_dense'],
     default='sparse_to_dense')
 parser.add_argument('--log_images', action='store_true')
-parser.add_argument('--cache_results', type = bool, required=False, default=False)
+parser.add_argument('--cache_results', action = 'store_true')
 parser.add_argument('--cmu_slice', type=int, default=2)
 
 # Enable slicing
@@ -48,11 +48,13 @@ def get_pose_predictor(pose_predictor_cls: predictor.PosePredictor,
                        dataset: base_dataset.BaseDataset,
                        network: network.ImageRetrievalModel,
                        ranks: np.ndarray,
-                       log_images: bool):
+                       log_images: bool,
+                       cache_results:bool):
     return pose_predictor_cls(dataset=dataset,
                               network=network,
                               ranks=ranks,
-                              log_images=log_images)
+                              log_images=log_images,
+                              cache_results=cache_results)
 
 def bind_cmu_parameters(cmu_slice, mode, start=-1, end=-1):
     """Update CMU gin parameters to match chosen slice."""
@@ -120,7 +122,8 @@ def main(args):
     pose_predictor = get_pose_predictor(dataset=dataset,
                                         network=net,
                                         ranks=ranks,
-                                        log_images=args.log_images)
+                                        log_images=args.log_images,
+                                        cache_results=args.cache_results)
 
     pose_predictor.save(pose_predictor.run(args.start, args.end))
 
