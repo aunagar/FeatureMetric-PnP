@@ -82,7 +82,7 @@ class SparseToDensePredictor(predictor.PosePredictor):
         result_frame = pd.DataFrame(columns=["reference_image_origin", "query_image_origin","num_initial_matches", "num_final_matches", "initial_cost", "final_cost","track_pickle_path"])
         cnt = -1
 
-        if self.cache:
+        if self._cache_results:
             cache_dict = dict()
 
         # If start and end are unset -> Run on whole slice
@@ -167,7 +167,7 @@ class SparseToDensePredictor(predictor.PosePredictor):
                         predictions.append(prediction)
                 else:
                     predictions.append(prediction)
-                if self.cache:
+                if self._cache_results:
                     local_res= {
                     'reference_filename' : prediction.reference_filename,
                     'success': prediction.success,
@@ -183,7 +183,7 @@ class SparseToDensePredictor(predictor.PosePredictor):
                     cache_dict[query_image + ":" + prediction.reference_filename] = local_res
 
             if len(predictions):
-                if self.cache:
+                if self._cache_results:
                     np.savez(self._output_path + self._cache_filename, **cache_dict)
                 export, best_prediction = self._choose_best_prediction(
                     predictions, query_image)
