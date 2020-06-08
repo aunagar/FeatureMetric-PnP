@@ -37,8 +37,8 @@ def fetch_ranks(file_path: str,
     reference_images = list(numpy_file['reference_images'])
 
     # If not, recompute them
-    if (dataset.data['query_image_names'] in query_images and
-        dataset.data['reference_image_names'] in reference_images):
+    if (set(dataset.data['query_image_names']) <= set(query_images) and
+        set(dataset.data['reference_image_names']) <= set(reference_images)):
         return numpy_file['ranks']
     else:
         logging.warn('Existing pre-computed files does not have ranks for'
