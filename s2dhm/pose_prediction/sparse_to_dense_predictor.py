@@ -101,9 +101,6 @@ class SparseToDensePredictor(predictor.PosePredictor):
                 continue
 
             print("Working on cnt = %d" % cnt)
-
-            # if cnt != 16:
-            #     continue
             
             query_image = self._dataset.data['query_image_names'][i] #Name
             if query_image not in self._filename_to_intrinsics:
@@ -188,7 +185,7 @@ class SparseToDensePredictor(predictor.PosePredictor):
 
             if len(predictions):
                 if self.cache:
-                    np.savez(self._output_path + self._cache_file, **cache_dict)
+                    np.savez(self._output_path + self._cache_filename, **cache_dict)
                 export, best_prediction = self._choose_best_prediction(
                     predictions, query_image)
                 #please note we are appending the pose twice into the output

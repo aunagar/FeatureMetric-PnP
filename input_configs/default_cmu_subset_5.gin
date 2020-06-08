@@ -14,6 +14,7 @@ plot_correspondences.plot_image_retrieval.export_folder = 'logs/sparse_to_dense/
 RUN_NAME = "slice_5_normal"
 OUTPUT_DIR = "results/cmu/slice_5/" # CHANGE THIS
 CSV_NAME = "featurePnP_summary.csv"
+CACHE_FILE = "slice_5.npz"
 
 # Pre-trained model weights
 ImageRetrievalModel.checkpoint_path = 'checkpoints/cmu/weights.pth.tar'
@@ -23,6 +24,7 @@ ImageRetrievalModel.hypercolumn_layers =  [9, 14, 17,21, 24] #[14, 17, 21, 24, 2
 SparseToDensePredictor.output_filename = 'sparse_to_dense_predictions.txt'
 SparseToDensePredictor.output_csvname = %CSV_NAME
 SparseToDensePredictor.output_path = %OUTPUT_DIR
+SparseToDensePredictor.cache_filename = CACHE_FILE 
 SparseToDensePredictor.track = False
 
 # Output parameters

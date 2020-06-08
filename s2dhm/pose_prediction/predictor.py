@@ -21,6 +21,7 @@ class PosePredictor():
                        output_path: str,
                        output_filename: str,
                        output_csvname: str,
+                       cache_filename: str,
                        log_images: bool):
         """Initialize base class attributes.
 
@@ -36,6 +37,7 @@ class PosePredictor():
         self._output_filename = output_filename
         self._output_path = output_path
         self._output_csvname = output_csvname
+        self._cache_filename = cache_filename
         self._log_images = log_images
         Path(self._output_path).mkdir(exist_ok=True, parents=True) # Autocreate output folder!
 
