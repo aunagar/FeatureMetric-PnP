@@ -93,10 +93,10 @@ def save_video(frames, video_path,fr=2):
         #cv2.imwrite('../Results/frame%d.jpg' % i, image)
     video.release()
 
-def frames_from_track(query_image, track_dict, n_iters, *args, **kwargs):
+def frames_from_track(query_image, track_dict, n_iters, *args, point_scale = 1, **kwargs):
     img = cv2.imread(query_image) #Change
     
-    point_list=torch.stack(track_dict["points2d"][:n_iters])
+    point_list=torch.stack(track_dict["points2d"][:n_iters]) * point_scale
     R_list = track_dict["Rs"][:n_iters]
     cost_list = track_dict["costs"][:n_iters]
     t_list = track_dict["ts"][:n_iters]

@@ -7,7 +7,7 @@ import numpy as np
 import pickle
 import kornia
 import gin
-import logging
+
 from helpers.utils import (from_homogeneous, to_homogeneous,
                 batched_eye_like, skew_symmetric, so3exp_map)
 
@@ -34,60 +34,50 @@ H...Height of the image (pixels)
 W...Width of the image (pixels)
 """
 
-def feature_gradient(feature_map, batch=False):
-    """
-    Apply 3x3 sobel filter on the n-dimensional feature map
-
-    inputs:
-    @feature_map : BxCxHxW (B is required if batch = True)
-    @batch : is it batched or not
-
-    outputs:
-    grad_x (BxCxHxW)
-    grad_y (BxCxHxW)
-    """
-    # we need 3D feature map
-    assert len(feature_map.shape) > 2
-
-    if batch:
-        grad = kornia.filters.spatial_gradient(feature_map)
-        return grad[:, :, 0, :, :], grad[:, :, 1, :, :]
-    else:
-        feature_map = feature_map[None]
-        grad = kornia.filters.spatial_gradient(feature_map)
-        grad_x = grad[:, :, 0, :, :].reshape(feature_map.shape[1:])
-        grad_y = grad[:, :, 1, :, :].reshape(feature_map.shape[1:])
-        return grad_x, grad_y
-
-def optimizer_step(g, H, lambda_=0, lr=1.):
+def optimizer_step(g, H, lambda_=0, lr = 1.):
     """One optimization step with Gauss-Newton or Levenberg-Marquardt.
     Args:
         g: batched gradient tensor of size (..., N).
         H: batched hessian tensor of size (..., N, N).
         lambda_: damping factor for LM (use GN if lambda_=0).
     """
+#    start = torch.cuda.Event(enable_timing=True)
+#    end = torch.cuda.Event(enable_timing=True)
     if lambda_:  # LM instead of GN
         D = (H.diagonal(dim1=-2, dim2=-1) + 1e-9).diag_embed()
         H = H + D*lambda_
     try:
+#        start.record()
         H_LU, pivots = torch.lu(H)
+        # P = torch.inverse(H)
+#        end.record()
+#        torch.cuda.synchronize()
+#        print("Preprocessing time: %lf" % (start.elapsed_time(end)))
     except RuntimeError as e:
         logging.warning(f'Determinant: {torch.det(H)}')
         raise e
+
+#    start.record()
     x = torch.lu_solve(g[..., None], H_LU, pivots)
-    delta = -lr * x[..., 0]
+    delta = -lr * x[..., 0] # generally learning rate does not make sense for second order methods
+    # delta = -lr * (P @ g[..., None])[..., 0] # generally learning rate does not make sense for second order methods
+#    end.record()
+#    torch.cuda.synchronize()
+#    print("Solution time: %lf" % (start.elapsed_time(end)))
+#    
+#    print(H.device)
+#    print(H_LU.device)
+#    print(delta.device)
+
     return delta
 
 def indexing_(feature_map, points, width, height):
     '''
     Function gives x and y gradients for 3D points in camera frame.
-
     inputs: (All pytorch tensors)
     @feature_map : x gradient of the feature map (CxHxW)
     @points : pixel coordinates of points (Nx2)
-
     @imsize: optional: tuple(height, width)
-
     outputs: 
     features : features for the points (NxC) 
     '''
@@ -103,8 +93,9 @@ def indexing_(feature_map, points, width, height):
 
     return features
 
+
 # New indexing_
-def interpolate_tensor(tensor, pts, im_size=(1024,1024), old =False):
+def interpolate_tensor(tensor, pts):
     '''
     Assume that the points are already scales to the size of the tensor
     tensor: C x H x W
@@ -112,32 +103,24 @@ def interpolate_tensor(tensor, pts, im_size=(1024,1024), old =False):
     return N x C
     '''
     c, h, w = tensor.shape
-
-    if im_size is not None:
-        pts_rescale = pts.detach() / pts.new_tensor([im_size[0]/w, im_size[1]/h])
-    else:
-        pts_rescale = pts.detach()
-    pts_downscale = (pts_rescale / pts.new_tensor([w-1, h-1])) *2 -1
-    #args = {'align_corners': True} if int(torch.__version__[2]) > 2 else {}
+    print(h,w)
+    return indexing_(tensor, torch.flip(pts, (1,)), w, h)
+    
+    pts = (pts / pts.new_tensor([w-1, h-1])) * 2 -1
+    args = {'align_corners': True} if int(torch.__version__[2]) > 2 else {}
     tensor_out = torch.nn.functional.grid_sample(
-        tensor[None], pts_downscale[None, None], mode='bilinear', align_corners=True)
+        tensor[None], pts[None, None], mode='bilinear', **args)
     return tensor_out.reshape(c, -1).t()
 
-
-def mask_in_image(pts, image_size, pad=1):
-    w, h = image_size
-    return torch.all((pts >= pad) & (pts < pts.new_tensor([w-pad, h-pad])), -1)
-
+    
 def points_within_image(points_2d, width, height, pad=0):
     '''
     Function gives a mask for points_2d that only returns points that are within width and height.
-
     inputs:
     @points_2d : pixel coordinates of points (Nx2) (pytorch tensor)
     @width : Width of image in pixels
     @height : Height of image in pixels
     @pad : Offset from width and height (defaults to zero)
-
     outputs: 
     mask : Flag whether each point is within the range (Nx1)
     '''
@@ -157,6 +140,7 @@ def ratio_threshold_feature_errors(feature_errors, threshold = 0.8):
     mask = (torch.abs(feature_errors) < limit)
 
     # TODO: Minimum inliers as a parameter (Measure distribution)
+
     return mask
 
 @gin.configurable
@@ -186,7 +170,7 @@ def find_inliers(pts3D, R, t, feature_map_query, feature_ref, K,im_width, im_hei
 @gin.configurable
 class sparseFeaturePnP(nn.Module):
     def __init__(self, n_iters, loss_fn = squared_loss, lambda_ = 0.01,
-                verbose = False, ratio_threshold = None, useGPU = False, scaling = 1.0, normalize_feat = False, pad = 0):
+                verbose = False, ratio_threshold = None, useGPU = False):
         super().__init__()
         self.iterations = n_iters
         self.loss_fn = loss_fn
@@ -197,9 +181,6 @@ class sparseFeaturePnP(nn.Module):
         self.ratio_threshold_ = ratio_threshold
         self.initial_cost_=None
         self.useGPU = useGPU # GPU works but might still need some modifications
-        self.scaling = scaling
-        self.normalize_feat = normalize_feat
-        self.pad = pad
 
     def track(self, R,t, cost, points_2d,  mask, threshold_mask):
         self.track_["Rs"].append(R)
@@ -211,7 +192,7 @@ class sparseFeaturePnP(nn.Module):
 
     @gin.configurable
     def multilevel_optimization(self, feature_pyramid, pts3D, feature_ref, feature_map_query,
-                    feature_grad_x, feature_grad_y,K, R_init, t_init, *args, **kwargs):
+                    feature_grad_x, feature_grad_y,*args, **kwargs):
                     
         self.initial_cost_= self.compute_cost(pts3D, kwargs["R_init"], kwargs["t_init"], feature_map_query, feature_ref, *args)
         channels = feature_map_query.shape[0]
@@ -271,8 +252,8 @@ class sparseFeaturePnP(nn.Module):
 
     @gin.configurable
     def forward(self, pts3D, feature_ref, feature_map_query,
-                feature_grad_x, feature_grad_y, K, R_init, t_init, im_width, im_height, 
-                track = False, confidence=None, scale=None, rdist = None):
+                feature_grad_x, feature_grad_y, K,R_init, t_init, im_width, im_height, 
+                track = False, confidence=None, scale=None):
         '''
         inputs:
         @pts3D : 3D points in reference camera frame (Nx3)
@@ -281,24 +262,43 @@ class sparseFeaturePnP(nn.Module):
         @feature_grad_x : feature gradient map for query image (CxHxW)
         @feature_grad_y : feature gradient map for query image (CxHxW)
         @K : Camera matrix
-
         optional:
         @R_init : Initial rotation matrix (3x3)
         @t_init : Initial translation vector (3x1)
         @track : Whether a history of parameters should be written to self.track_
         '''
-        # feature_grad_x, feature_grad_y = feature_gradient(feature_map_query)
-        R, t = R_init, t_init
 
-        print(R,t)
+        # if not track:
+        #     track = track_
+        #     pickle_path = pickle_path_
+        # else:
+        #     pickle_path = None
+
+        # This might be convenient but might to lead to errors
+        if R_init is None: # If R is not initalized, initialize it as identity
+            R = torch.eye(3).to(pts3D)
+        else:
+            R = R_init
+        if t_init is None:
+            t = pts3D.new_tensor([1, 1, 0]).double()
+        else:
+            t = t_init
 
         # regularization parameter
         lambda_ = self.lambda_ # lambda for LM method
-        lr = self.scaling # learning rate
-        lr_reset = self.scaling #reset learning rate
+        lr = 1.0 # learning rate
+        lr_reset = 1.0 #reset learning rate
 
-        if self.normalize_feat:
-            feature_ref = torch.nn.functional.normalize(feature_ref, dim=1)
+        #no_outliers = torch.new_empty((0,1))
+
+        # start = torch.cuda.Event(enable_timing=True)
+        # end = torch.cuda.Event(enable_timing=True)
+        # start.record()
+        # end.record()
+        # torch.cuda.synchronize()
+        # print("iter %d: %f" % (i, start.elapsed_time(end)))
+
+        old = True
 
         if self.useGPU and torch.cuda.is_available(): # Move stuff to GPU
             # print("Running Sparse3DBA.forward on GPU")
@@ -306,53 +306,35 @@ class sparseFeaturePnP(nn.Module):
             feature_map_query, feature_ref = feature_map_query.cuda(), feature_ref.cuda()
             feature_grad_x, feature_grad_y = feature_grad_x.cuda(), feature_grad_y.cuda()
 
-        cnt = 0
         for i in range(self.iterations):
-            cnt+=1
+
             # project all points using current R and T on image 
-            points_3d = (pts3D @ R.T) + t #torch.mm(R, pts3D.T).T + t
 
-            # if self.useGPU:                
-            #     points_2d = torch.round(from_homogeneous(torch.mm(K, points_3d.T).T)).type(torch.cuda.IntTensor)-1
-            # else:
-            #     points_2d = torch.round(from_homogeneous(torch.mm(K, points_3d.T).T)).type(torch.IntTensor)-1
-
-            points_2d_norm_d = from_homogeneous(points_3d)
-            
-
-            if rdist is not None:
-                points_2d_norm = radial_distortion(points_2d_norm_d, rdist)
+            if old:
+                points_3d = torch.mm(R, pts3D.T).T + t
+                if self.useGPU:                
+                    points_2d = torch.round(from_homogeneous(torch.mm(K, points_3d.T).T)).type(torch.cuda.IntTensor)-1
+                else:
+                    points_2d = torch.round(from_homogeneous(torch.mm(K, points_3d.T).T)).type(torch.IntTensor)-1
             else:
-                points_2d_norm = points_2d_norm_d
+                points_3d = (pts3D @ R.T) + t
+                points_2d = from_homogeneous(points_3d)* K[..., [0, 1], [0, 1]] + K[..., [0, 1], [2, 2]]
 
-            points_2d = points_2d_norm * K[..., [0, 1], [0, 1]] + K[..., [0, 1], [2, 2]]
-            
+            print(points_2d)
             # Get the points that are supported within our image size
             mask_supported = points_within_image(points_2d, im_width, im_height)
-            print(points_2d)
 
             # We only take supported points
             points_2d_supported = points_2d[mask_supported]
             points_3d_supported = points_3d[mask_supported]
-
             if points_2d_supported.shape[0] == 0:
                 if self.useGPU:
                     return R.cpu(), t.cpu()
                 else:
                     return R, t
-            feature_p2D_raw = indexing_(feature_map_query, torch.flip(points_2d_supported,(1,)), im_width, im_height)
-            #feature_p2D_raw = interpolate_tensor(feature_map_query, points_2d_supported)
-            print("feature p2d raw", feature_p2D_raw)
-            print("Feature ref", feature_ref)
-            # error = indexing_(feature_map_query, torch.flip(points_2d_supported,(1,)), im_width, im_height) - feature_ref[mask_supported]
-            if self.normalize_feat:
-                feature_p2D = torch.nn.functional.normalize(
-                    feature_p2D_raw, dim=1)
-            else:
-                feature_p2D = feature_p2D_raw
-
-            error = feature_p2D - feature_ref[mask_supported]
-
+            #print(indexing_(feature_map_query, torch.flip(points_2d_supported,(1,)), im_width, im_height))
+            #error = interpolate_tensor(feature_map_query, points_2d_supported) - feature_ref[mask_supported]
+            error = indexing_(feature_map_query, torch.flip(points_2d_supported,(1,)), im_width, im_height) - feature_ref[mask_supported]
             if self.use_ratio_test_:
                 cost = 0.5 * (error**2).sum(-1) # Why 0.5??
                 cost_full, weights, _ = self.loss_fn(cost)
@@ -377,7 +359,6 @@ class sparseFeaturePnP(nn.Module):
 
             # Base Case
             if i == 0:
-                points_2d_init = points_2d.detach()
                 prev_cost = cost.mean(-1)
                 self.best_cost_ = prev_cost
                 num_inliers = points_2d_supported.shape[0]
@@ -387,9 +368,9 @@ class sparseFeaturePnP(nn.Module):
                 self.best_num_inliers_  = num_inliers
                 if self.initial_cost_ is None:
                     self.initial_cost_ = prev_cost
-                print(cost.mean().item())
+
                 if track:
-                    self.track(R_best, t_best,cost.mean().item(), points_2d, mask_supported, threshold_mask)
+                    self.track(R, t,cost.mean().item(), points_2d, mask_supported, threshold_mask)
             if self.verbose:
                 print('Iter ', i, cost.mean().item())
 
@@ -408,91 +389,38 @@ class sparseFeaturePnP(nn.Module):
             # + homogeneous!
             # Nx2x6
             shape = points_3d_supported.shape[:-1]
-            
-            # Gradient of normalized point pn with respect to 3D point p3
-            # N x 2 x 3
             o, z = points_3d_supported.new_ones(shape), points_3d_supported.new_zeros(shape)
             J_px_p = torch.stack([
                 K[0,0]*o, z, -K[0,0]*points_3d_supported[..., 0] / points_3d_supported[..., 2],
                 z, K[1,1]*o, -K[1,1]*points_3d_supported[..., 1] / points_3d_supported[..., 2],
             ], dim=-1).reshape(shape+(2, 3)) / points_3d_supported[..., 2, None, None]
 
-            # New
-            # x, y, d = pts3D_q[..., 0], pts3D_q[..., 1], pts3D_q[..., 2]
-            # z = torch.zeros_like(d)
-            # J_px_p = torch.stack([
-            #     1/d, z, -x / d**2,
-            #     z, 1/d, -y / d**2], dim=-1).reshape(pts3D_q.shape[:-1]+(2, 3))
-
-            if rdist is not None:
-                # Gradient of radial distortion
-                # N x 2 x 2 matrix
-                # [[1+2kx 2ky]
-                #  [2kx   1+2ky]]
-                J_dist = (batched_eye_like(points_2d_norm, 2)
-                          + 2 * rdist * points_2d_norm_d[..., None, :])
-                J_px_p = J_dist @ J_px_p
-                del J_dist
-
-
-            
-
             # print("J_px_p is ", J_px_p)
             # feature gradient at projected pixel coordinates
-            #grad_x_points = interpolate_tensor(feature_grad_x, points_2d_supported)#indexing_(feature_grad_x, torch.flip(points_2d_supported,(1,)), im_width, im_height)
-            #grad_y_points = interpolate_tensor(feature_grad_y, points_2d_supported)
             grad_x_points = indexing_(feature_grad_x, torch.flip(points_2d_supported,(1,)), im_width, im_height)
             grad_y_points = indexing_(feature_grad_y, torch.flip(points_2d_supported,(1,)), im_width, im_height)
-
+            #grad_x_points = interpolate_tensor(feature_grad_x, points_2d_supported)
+            #grad_y_points = interpolate_tensor(feature_grad_y, points_2d_supported)
             # gradient of features with respect to pixel points
             J_f_px = torch.cat((grad_x_points[..., None], grad_y_points[...,None]), -1)
 
-            del grad_x_points, grad_y_points
-
-            if self.normalize_feat:
-                # Gradient of L2 normalization
-                norm = torch.norm(feature_p2D_raw, p=2, dim=1)
-                normed = feature_p2D
-                Id = torch.eye(normed.shape[-1])[None].to(normed)
-                J_norm_f = (Id - normed[:, :, None] @ normed[:, None])
-                J_norm_f = J_norm_f / norm[..., None, None]
-                J_f_px = J_norm_f @ J_f_px
-                del J_norm_f
-
             # print("J_f_px is ", J_f_px)
             # gradient of feature error w.r.t. camera matrix T (including K)
-            # J_e_T = J_f_px @ J_px_p @ J_p_T
-            # del J_f_px, J_p_T, J_px_p
-
-            # New
-            # Gradient of intrinsic matrix K
-            # z = torch.zeros_like(K[..., 0, 0])
-            # J_p2_pn = torch.stack([
-            #     K[..., 0, 0], z,
-            #     z, K[..., 1, 1]], dim=-1).view(K.shape[:-2]+(1, 2, 2))
-
-            # J = J_f_px @ J_p2_pn @ J_px_p @ J_p_T
-            # del J_f_px, J_p2_pn, J_px_p, J_p_T
+            J_e_T = J_f_px @ J_px_p @ J_p_T
             
-            # Jacobi scaling
-            # if i == 0:
-            #     jacobi = 1 / (1 + torch.norm(J_e_T, p=2, dim=(0, 1)))
-            # J_e_T = J_e_T * jacobi[None, None] #Problematic somehow
-
             #Grad = J_e_T * error
             Grad = torch.einsum('bij,bi->bj', J_e_T, error)
             Grad = weights[..., None] * Grad # Weights are the first derivative of the loss function
             Grad = Grad.sum(-2)  # Grad was ... x N x 6
+
+            J = J_e_T # final jacobian
             
-            J= J_e_T
             Hess = torch.einsum('ijk,ijl->ikl', J, J) # Approximate Hessian = J.T * J
             Hess = weights[..., None, None] * Hess
             Hess = Hess.sum(-3)  # Hess was ... x N x 6 x 6
  
             # finding gradient step using LM or Newton method
             delta = optimizer_step(Grad, Hess, lambda_, lr = lr)
-            del Grad, Hess
-
             
             # delta = -lr*Grad
             if torch.isnan(delta).any():
@@ -504,31 +432,36 @@ class sparseFeaturePnP(nn.Module):
 
             # Rotational delta as a skew symmetric matrix -> SO3
             dr = so3exp_map(dw)
+            # if self.verbose:
+                # print("dr is : ", dw)
+                # print("dt is : ", dt)
 
             # Update Rotation and translation of camera
             R_new = dr @ R 
             t_new = dr @ t + dt #first rotate old t, then add dt (which is in the new coordinate frame)
 
-            new_points_3d = from_homogeneous((pts3D @ R_new.T) + t_new)
-            if rdist is not None:
-                new_points_3d = radial_distortion(new_points_3d, rdist)
-            new_points_2d = new_points_3d * K[..., [0, 1], [0, 1]] + K[..., [0, 1], [2, 2]]
+            # new_points_3d = torch.mm(R_new, pts3D.T).T + t_new
+            if old:
+                new_points_3d = torch.mm(R_new, pts3D.T).T + t_new
+                # Maybe there is some minor problem (+-1 pixel due to rounding!)
+                if self.useGPU:                
+                    new_points_2d = torch.round(from_homogeneous(torch.mm(K, new_points_3d.T).T)).type(torch.cuda.IntTensor) - 1
+                else:
+                    new_points_2d = torch.round(from_homogeneous(torch.mm(K, new_points_3d.T).T)).type(torch.IntTensor) - 1
+            else:
+                new_points_3d = (pts3D @ R_new.T) + t_new
+                new_points_2d = from_homogeneous(new_points_3d) * K[..., [0, 1], [0, 1]] + K[..., [0, 1], [2, 2]]
             
             # Get mask for new points
             mask_supported = points_within_image(new_points_2d, im_width, im_height)
-            
+
             # Mask new points
-            new_points_2d_supported = new_points_2d[mask_supported,:]
-            new_points_3d_supported = new_points_3d[mask_supported,:]
-            print(new_points_2d_supported)
-            # Check new error
-            # feature_p2D_new = interpolate_tensor(feature_map_query, new_points_2d_supported) # Could also do on all new 2d and then mask
-            feature_p2D_new = indexing_(feature_map_query, torch.flip(new_points_2d_supported, (1,)), im_width, im_height)
-            # new_error = indexing_(feature_map_query, torch.flip(new_points_2d_supported, (1,)), im_width, im_height) - feature_ref[mask_supported]
-            if self.normalize_feat:
-                feature_p2D_new = nn.functional.normalize(feature_p2D_new, dim=1)
+            new_points_2d_supported = new_points_2d[mask_supported]
+            new_points_3d_supported = new_points_3d[mask_supported]
             
-            new_error = feature_p2D_new - feature_ref[mask_supported]
+            # Check new error
+            new_error = indexing_(feature_map_query, torch.flip(new_points_2d_supported, (1,)), im_width, im_height) - feature_ref[mask_supported]
+            #new_error = interpolate_tensor(feature_map_query, new_points_2d_supported)- feature_ref[mask_supported]
             if self.use_ratio_test_:
                 new_cost = 0.5 * (new_error**2).sum(-1)
                 new_cost_full, weights, _ = self.loss_fn(new_cost)
@@ -543,21 +476,20 @@ class sparseFeaturePnP(nn.Module):
             new_cost = 0.5 * (new_error**2).sum(-1)
             new_cost, weights, _ = self.loss_fn(new_cost)
             new_cost = new_cost.mean()
+
             if track:
-                self.track(R_new, t_new,new_cost.item(), new_points_2d, mask_supported, new_threshold_mask)
+                    self.track(R_new, t_new,new_cost.item(), new_points_2d, mask_supported, new_threshold_mask)
             
             if self.verbose:
-                logging.info(
-                    f'it {i} New cost: {new_cost.item():.4E} {lambda_:.1E}')
-
+                print("new cost is ", new_cost.item())
             lambda_ = np.clip(lambda_ * (10 if new_cost > prev_cost else 1/10),
                               1e-6, 1e4) # according to rule, we change the lambda if error increases/decreases
-           
+
             if new_cost > prev_cost:  # cost increased
-                #  lr = np.clip(0.1*lr, 1e-3, 1.)
-                # lr = np.clip(0.1*lr, 1e-3, 1.)
+                #print("cost increased, continue with next iteration")
+                # print(lambda_)
+                lr = np.clip(0.1*lr, 1e-3, 1.)
                 continue
-            
             else:
                 lr = lr_reset
                 if new_cost < self.best_cost_:
@@ -565,46 +497,14 @@ class sparseFeaturePnP(nn.Module):
                     t_best = t_new
                     self.best_num_inliers_ = new_points_2d_supported.shape[0]
                     self.best_cost_ = new_cost
-
             prev_cost = new_cost
+            
             R, t = R_new, t_new # Actually we should write the result only if the cost decreased!
 
         # if track and (pickle_path is not None):
         #     pickle.dump(self.track_, open(pickle_path, "wb")) 
 
-        R,t = R_best, t_best
-
-        points_2d_final = from_homogeneous((pts3D.detach() @ R.T) + t)
-        if rdist is not None:
-            points_2d_final = radial_distortion(points_2d_final, rdist)
-        points_2d_final = points_2d_final*K[..., [0, 1], [0, 1]]+K[..., [0, 1], [2, 2]]
-        feature_p2D_i = interpolate_tensor(feature_map_query, points_2d_init)
-        feature_p2D_f = interpolate_tensor(feature_map_query, points_2d_final)
-        if self.normalize_feat:
-            feature_p2D_i = nn.functional.normalize(feature_p2D_i, dim=1)
-            feature_p2D_f = nn.functional.normalize(feature_p2D_f, dim=1)
-        cost_init = ((feature_ref - feature_p2D_i)**2).sum(-1)
-        cost_final = ((feature_ref - feature_p2D_f)**2).sum(-1)
-        NA = cost_init.new_tensor(float('nan'))
-        cost_init = torch.where(
-            mask_in_image(points_2d_init, (im_width, im_height), pad=self.pad), cost_init, NA).mean()
-        cost_final = torch.where(
-            mask_in_image(points_2d_final, (im_width, im_height), pad=self.pad), cost_final, NA).mean(0)
-
-        if self.verbose:
-            diff_R, diff_t = pose_error(R_init, t_init, R, t)
-            logging.info(f'Change in R, t: {diff_R:.2E} deg, {diff_t:.2E} m')
-            diff_p2D = torch.norm(points_2d_init - points_2d_final, p=2, dim=-1)
-            logging.info(
-                f'Change in points: mean {diff_p2D.mean().item():.2E}, '
-                f'max {diff_p2D.max().item():.2E}')
-            valid = (~torch.isnan(cost_init)) & (~torch.isnan(cost_final))
-            better = torch.mean((cost_init > cost_final).float()[valid])
-            logging.info(f'Improvement for {better*100:.3f}% of points')
-        print(cnt)
-        return R, t, cost_init, cost_final
-
-        # if self.useGPU:
-        #     return R_best.cpu(), t_best.cpu()
-        # else:
-        #     return R_best, t_best
+        if self.useGPU:
+            return R_best.cpu(), t_best.cpu(),2,2
+        else:
+            return R_best, t_best,2,2
