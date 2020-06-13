@@ -10,6 +10,7 @@ BA/.vscode/settings.json
 *.pyc
 lsf*
 BA/feature_BA.pdf
+results/cmu/
 S2DHM/data/
 S2DHM/s2dhm/output.txt
 *.mp4

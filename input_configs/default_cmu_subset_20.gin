@@ -12,7 +12,7 @@ plot_correspondences.plot_correspondences.export_folder = 'logs/sparse_to_dense/
 plot_correspondences.plot_image_retrieval.export_folder = 'logs/sparse_to_dense/nearest_neighbor/cmu/'
 
 RUN_NAME = "slice_20_normal"
-OUTPUT_DIR = "results/cmu/slice_20/" # CHANGE THIS
+OUTPUT_DIR = "/cluster/scratch/aunagar/featurePnP/results/cmu/partial_runs/slice_20/" # CHANGE THIS
 CSV_NAME = "featurePnP_summary.csv"
 
 # Pre-trained model weights
