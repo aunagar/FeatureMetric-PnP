@@ -225,8 +225,10 @@ if __name__ == '__main__':
     s2dPnP = SparseToDenseFeatureMetricPnP(filename_to_pose, filename_to_intrinsics,
             filename_to_local_reconstruction, net)
 
+    cache_dict = {}
+    
     for k in range(len(query_images)):
-        prediction, query_hypercolumn, reference_hypercolumn = s2dPnP.run(query_images[k], ref_images[k])
+        prediction, query_hypercolumn, reference_hypercolumn, cache_dict[query_images[k]]  = s2dPnP.run(query_images[k], ref_images[k])
 
         K = torch.from_numpy(filename_to_intrinsics[ref_images[k]][0]).type(torch.DoubleTensor)
         R, t, model = feature_pnp(query_hypercolumn, reference_hypercolumn, prediction, K, (1024, 1024), track=track)
@@ -316,6 +318,8 @@ if __name__ == '__main__':
     result_frame.to_csv(io_gin.output_dir + io_gin.csv_name, sep = ";", index = False)
 
     print(gin.operative_config_str())
+
+    np.savez( io_gin.output_dir + "cache.npz", **cache_dict)
 
     with open(io_gin.output_dir + "input_operative_str.txt", "w") as doc:
         doc.write(str(gin.operative_config_str()))

@@ -99,7 +99,22 @@ class SparseToDenseFeatureMetricPnP:
             if prediction:
                 return prediction, query_dense_hypercolumn, reference_dense_hypercolumn
         else:
-            return prediction, query_dense_hypercolumn, reference_dense_hypercolumn
+            local_res= {
+                    'reference_filename' : prediction.reference_filename,
+                    'success': prediction.success,
+                    'query_2D' : points_2D,
+                    'reference_2D': local_reconstruction.points_2D[mask],
+                    'points_3D': points_3D,
+                    'num_matches': prediction.num_matches,
+                    'num_inliers':prediction.num_inliers,
+                    'inlier_mask':prediction.inlier_mask,
+                    'quaternion':prediction.quaternion,
+                    'matrix':prediction.matrix,
+                    }
+#            cache_filename = query_image.replace(".jpg","")+".npz"
+#            os.makedirs(os.path.dirname(cache_filename), exist_ok=True)
+#            np.savez(cache_filename, *local_res)
+            return prediction, query_dense_hypercolumn, reference_dense_hypercolumn, local_res
 
     @property
     def dataset(self):
