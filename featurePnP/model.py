@@ -161,7 +161,7 @@ class sparseFeaturePnP(nn.Module):
         self.loss_fn = loss_fn
         self.verbose = verbose
         self.lambda_ = lambda_
-        self.track_ = {"Rs":[], "ts":[], "costs": [], "points2d":[], "mask":[], "threshold_mask":[]}
+        self.track_ = {"Rs":[], "ts":[], "costs":[], "points3d":[], "points2d":[], "mask":[], "threshold_mask":[]}
         self.use_ratio_test_ = ratio_threshold is not None
         self.ratio_threshold_ = ratio_threshold
         self.initial_cost_=None
@@ -283,6 +283,8 @@ class sparseFeaturePnP(nn.Module):
         # end.record()
         # torch.cuda.synchronize()
         # print("iter %d: %f" % (i, start.elapsed_time(end)))
+        if track: 
+            self.track_["points3d"].append(pts3D)
 
         if self.useGPU and torch.cuda.is_available(): # Move stuff to GPU
             # print("Running Sparse3DBA.forward on GPU")
