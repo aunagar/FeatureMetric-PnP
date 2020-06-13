@@ -26,7 +26,7 @@ IOgin.csv_name = %CSV_NAME
 IOgin.output_dir = %OUTPUT_DIR
 
 ## Model Parameters:
-sparseFeaturePnP.loss_fn = @geman_mcclure_loss #@cauchy_loss, ...
+sparseFeaturePnP.loss_fn = @squared_loss #@cauchy_loss, ...
 sparseFeaturePnP.ratio_threshold = None
 sparseFeaturePnP.n_iters = 100
 
