@@ -37,7 +37,7 @@ class SparseToDenseFeatureMetricPnP:
         """Compute hypercolumns at every visible 3D point reprojection."""
         reference_dense_hypercolumn, image_size = \
             self._network.compute_hypercolumn(
-                [reference_image], to_cpu=False, resize=True)
+                [reference_image], to_cpu=True, resize=True)
         dense_keypoints, cell_size = keypoint_association.generate_dense_keypoints(
             (reference_dense_hypercolumn.shape[2:]),
             Image.open(reference_image).size[::-1], to_numpy=True)
@@ -91,6 +91,25 @@ class SparseToDenseFeatureMetricPnP:
             reference_filename=reference_image,
             reference_2D_points=local_reconstruction.points_2D[mask],
             reference_keypoints=None)
+
+
+        local_res= {
+        'reference_filename' : prediction.reference_filename,
+        'success': prediction.success,
+        'query_2D' : points_2D,
+        'reference_2D': local_reconstruction.points_2D[mask],
+        'points_3D': points_3D,
+        'num_matches': prediction.num_matches,
+        'num_inliers':prediction.num_inliers,
+        'inlier_mask':prediction.inlier_mask,
+        'quaternion':prediction.quaternion,
+        'matrix':prediction.matrix,
+        }
+        cache_dict[query_image] = local_res
+
+        cache_filename = query_image.replace(".jpg","")+".npz"
+        os.makedirs(os.path.dirname(cache_filename), exist_ok=True)
+        np.savez(cache_filename, **cache_dict)
 
         # If PnP failed, fall back to nearest-neighbor prediction
         if not prediction.success:

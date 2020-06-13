@@ -10,6 +10,9 @@ import pickle
 import torch
 import cv2
 import pandas as pd
+import torch
+
+torch.device("cpu")
 
 sys.path.append('s2dhm/') #Should be autodetected later in __init__.py file!
 sys.path.append('featurePnP/')
@@ -72,14 +75,14 @@ def get_pose_predictor(pose_predictor_cls: predictor.PosePredictor,
 
 if __name__ == '__main__':
     args = parser.parse_args()
-    DATA_PATH = "/nfs/nas12.ethz.ch/fs1201/infk_ivc_students/252-0579-00L/ntselepidis/S2DHM_datasets/RobotCar-Seasons/"
+    DATA_PATH = "../robotcar_dataset/" #/nfs/nas12.ethz.ch/fs1201/infk_ivc_students/252-0579-00L/ntselepidis/S2DHM_datasets/RobotCar-Seasons/"
     
     result_frame = pd.DataFrame(columns=["reference_image_origin", "query_image_origin","num_initial_matches", "num_final_matches", "initial_cost", "final_cost","track_pickle_path"])
 
     # put triangulation file in the same folder as robotcar data
-    triangulation_file = DATA_PATH + 'data/triangulation/robotcar_triangulation.npz'
+    triangulation_file = 'data/robotcar_triangulation.npz'
     nvm_filepath = DATA_PATH + '3D-models/all-merged/all.nvm'
-    image_root = DATA_PATH + 'images/'
+    image_root = DATA_PATH # + 'images/'
 
     gin.parse_config_file(
         args.input_config)
@@ -87,47 +90,49 @@ if __name__ == '__main__':
     
     io_gin = IOgin(args.input_config) # Parameters from Input file
 
-    ref_images = ['overcast-reference/rear/1417177821443708.jpg',
-                  'overcast-reference/rear/1417178379637791.jpg',
-                  'overcast-reference/rear/1417177965150722.jpg',
-                  'overcast-reference/rear/1417176981834751.jpg',
-                  'overcast-reference/rear/1417176982016599.jpg',
-                  'overcast-reference/rear/1417177964241727.jpg',
-                  'overcast-reference/rear/1417176981834751.jpg',
-                  'overcast-reference/rear/1417178468625282.jpg',
-                  'overcast-reference/rear/1417177029555384.jpg',
-                  'overcast-reference/rear/1417177069186036.jpg',
-                  'overcast-reference/rear/1417176982016599.jpg',
-                  'overcast-reference/rear/1417177030646106.jpg',
-                  'overcast-reference/rear/1417178467988996.jpg',
-                  'overcast-reference/rear/1417177029100823.jpg',
-                  'overcast-reference/rear/1417176982562024.jpg',
-                  'overcast-reference/rear/1417178029141715.jpg',
-                  'overcast-reference/rear/1417177630834182.jpg',
-                  'overcast-reference/rear/1417177088547051.jpg',
-                  'overcast-reference/rear/1417177821443708.jpg',
-                  'overcast-reference/rear/1417177165990619.jpg']
-                  
-    query_images = ['night-rain/rear/1418841346403822.jpg',
-                  'night-rain/rear/1418841677987976.jpg',
-                  'night-rain/rear/1418841403271814.jpg',
-                  'night-rain/rear/1418840689734892.jpg',
-                  'night-rain/rear/1418840689859877.jpg',
-                  'night-rain/rear/1418841402646891.jpg',
-                  'night-rain/rear/1418840689484924.jpg',
-                  'night-rain/rear/1418841708859176.jpg',
-                  'night-rain/rear/1418840728855054.jpg',
-                  'night-rain/rear/1418840746477876.jpg',
-                  'night-rain/rear/1418840690109846.jpg',
-                  'night-rain/rear/1418840729479977.jpg',
-                  'night-rain/rear/1418841707859299.jpg',
-                  'night-rain/rear/1418840728730070.jpg',
-                  'night-rain/rear/1418840690234831.jpg',
-                  'night-rain/rear/1418841595623116.jpg',
-                  'night-rain/rear/1418841295785077.jpg',
-                  'night-rain/rear/1418840761601006.jpg',
-                  'night-rain/rear/1418841346653791.jpg',
-                  'night-rain/rear/1418840815469348.jpg']
+    ref_images = ['overcast-reference/rear/1417177821443708.jpg']
+
+    # ref_images = ['overcast-reference/rear/1417177821443708.jpg',
+    #               'overcast-reference/rear/1417178379637791.jpg',
+    #               'overcast-reference/rear/1417177965150722.jpg',
+    #               'overcast-reference/rear/1417176981834751.jpg',
+    #               'overcast-reference/rear/1417176982016599.jpg',
+    #               'overcast-reference/rear/1417177964241727.jpg',
+    #               'overcast-reference/rear/1417176981834751.jpg',
+    #               'overcast-reference/rear/1417178468625282.jpg',
+    #               'overcast-reference/rear/1417177029555384.jpg',
+    #               'overcast-reference/rear/1417177069186036.jpg',
+    #               'overcast-reference/rear/1417176982016599.jpg',
+    #               'overcast-reference/rear/1417177030646106.jpg',
+    #               'overcast-reference/rear/1417178467988996.jpg',
+    #               'overcast-reference/rear/1417177029100823.jpg',
+    #               'overcast-reference/rear/1417176982562024.jpg',
+    #               'overcast-reference/rear/1417178029141715.jpg',
+    #               'overcast-reference/rear/1417177630834182.jpg',
+    #               'overcast-reference/rear/1417177088547051.jpg',
+    #               'overcast-reference/rear/1417177821443708.jpg',
+    #               'overcast-reference/rear/1417177165990619.jpg']
+    query_images = ['night-rain/rear/1418841346403822.jpg']            
+    # query_images = ['night-rain/rear/1418841346403822.jpg',
+    #               'night-rain/rear/1418841677987976.jpg',
+    #               'night-rain/rear/1418841403271814.jpg',
+    #               'night-rain/rear/1418840689734892.jpg',
+    #               'night-rain/rear/1418840689859877.jpg',
+    #               'night-rain/rear/1418841402646891.jpg',
+    #               'night-rain/rear/1418840689484924.jpg',
+    #               'night-rain/rear/1418841708859176.jpg',
+    #               'night-rain/rear/1418840728855054.jpg',
+    #               'night-rain/rear/1418840746477876.jpg',
+    #               'night-rain/rear/1418840690109846.jpg',
+    #               'night-rain/rear/1418840729479977.jpg',
+    #               'night-rain/rear/1418841707859299.jpg',
+    #               'night-rain/rear/1418840728730070.jpg',
+    #               'night-rain/rear/1418840690234831.jpg',
+    #               'night-rain/rear/1418841595623116.jpg',
+    #               'night-rain/rear/1418841295785077.jpg',
+    #               'night-rain/rear/1418840761601006.jpg',
+    #               'night-rain/rear/1418841346653791.jpg',
+    #               'night-rain/rear/1418840815469348.jpg']
 
     if args.ref_image:
         ref_images = [image_root + args.ref_image]
@@ -152,7 +157,7 @@ if __name__ == '__main__':
 
     
 
-    net = network.ImageRetrievalModel(device = "cuda")
+    net = network.ImageRetrievalModel(device = "cpu")
     
     s2dPnP = SparseToDenseFeatureMetricPnP(filename_to_pose, filename_to_intrinsics,
             filename_to_local_reconstruction, net)
