@@ -64,11 +64,11 @@ def plot_coordinate_system(ax1,center=(0,0,0),size=(1,1,1)):
     X, Y, Z = cuboid_data(center, size)
     #ax1.plot_surface(X, Y, Z, color='b', rstride=1, cstride=1, alpha=0.1)
     ax1.set_xlabel('X')
-    ax1.set_xlim(-1, 1)
+    #ax1.set_xlim(-1, 1)
     ax1.set_ylabel('Y')
-    ax1.set_ylim(-1, 1)
+    #ax1.set_ylim(-1, 1)
     ax1.set_zlabel('Z')
-    ax1.set_zlim(-1, 1)
+    #ax1.set_zlim(-1, 1)
 
     # Here we create the arrows:
     arrow_prop_dict = dict(mutation_scale=20, arrowstyle='->', shrinkA=0, shrinkB=0)

@@ -1,4 +1,6 @@
-import BA.visualization.plot_3d_tools as plot_3d
+#import BA.visualization.plot_3d_tools as plot_3d
+import torch
+import plot_3d_tools as plot_3d
 import numpy as np
 import cv2
 import matplotlib.pyplot as plt
@@ -49,14 +51,15 @@ def create_frames_with_camera_pose(rgb_img,R_list, t_list, cost_list, point_list
         plot_3d.plot_coordinate_system(ax, size = (0.5,0.5,0.5))
         # Plot initial camera pose (green pyramid)
         # Swap to R_init, t_init if you want initial pose
-        plot_3d.plot_camera(ax,R_list[0].numpy(),t_list[0].numpy(), edgecolor="g", facecolor=None, alph=0.05) 
+        plot_3d.plot_camera(ax,R_list[0].numpy(),t_list[0].numpy(), edgecolor="g", facecolor=None, alph=0.05, scale=2) 
         # Plot final camera pose (red pyramid)
-        plot_3d.plot_camera(ax,R_list[i].numpy(),t_list[i].numpy(), edgecolor="r", facecolor="r", alph=0.05)
+        plot_3d.plot_camera(ax,R_list[i].numpy(),t_list[i].numpy(), edgecolor="r", facecolor="r", alph=0.05, scale=2)
         # Adjust Angle of 3D plot view
-        ax.view_init(elev=-65, azim=-90)
-        ax.set_xlim(-1, 1)
-        ax.set_ylim(-1, 1)
-        ax.set_zlim(-0.2, 1)
+        #ax.view_init(elev=-65, azim=-90)
+        ax.view_init(elev=+10, azim=-90)
+        ax.set_xlim(-4.0, 4.0)
+        ax.set_ylim(-1.0, 2.0)
+        ax.set_zlim(-5.0, 5.0)
         #Remove Whitespace
         fig.subplots_adjust(left=-0.2, right=1.2, bottom=0, top=1)
         # Convert image to an array so we can concatenate with our image
@@ -85,8 +88,9 @@ def save_video(frames, video_path,fr=2):
     height, width, layers = frames[0].shape
     #framerate (frames/second)
     video= cv2.VideoWriter(video_path, cv2.VideoWriter_fourcc(*'mp4v'), 2, (width,height))
-    for image in frames:
-        video.write(image)
+    for i, image in enumerate(frames):
+        video.write(image)    
+        #cv2.imwrite('../Results/frame%d.jpg' % i, image)
     video.release()
 
 def frames_from_track(query_image, track_dict, n_iters, *args, **kwargs):
