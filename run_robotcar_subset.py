@@ -10,6 +10,7 @@ import pickle
 import torch
 import cv2
 import pandas as pd
+import heapq
 
 sys.path.append('s2dhm/') #Should be autodetected later in __init__.py file!
 sys.path.append('featurePnP/')
@@ -89,7 +90,7 @@ if __name__ == '__main__':
     
     io_gin = IOgin(args.input_config) # Parameters from Input file
 
-    df = pd.read_csv("featurePnP_summary.csv", sep=";")
+    df = pd.read_csv("featurePnP_summary_day.csv", sep=";")
     ref_images = df["reference"].to_list()
     query_images = df["query"].to_list()
 
@@ -292,19 +293,28 @@ if __name__ == '__main__':
                                                     export_filename = "qpoints_" + str(k) + ".jpg" )
 
         if args.output in ["all", "visualize_hc"]:
-            ref_idx = 0 #Change to select different point!
-            ref_p = prediction.reference_inliers[ref_idx]
-            r_img = cv2.cvtColor(cv2.imread(ref_images[k]), cv2.COLOR_BGR2RGB)
-            q_img = cv2.cvtColor(cv2.imread(query_images[k]), cv2.COLOR_BGR2RGB)
-            cv2.circle(r_img, tuple(ref_p.astype(int)), 2, (256, 0, 0), 3)
-            scale = reference_hypercolumn.shape[-1]/r_img.shape[1]
-            ref_p = (scale*ref_p).astype(int)
-            query_p = prediction.query_inliers[ref_idx]
-            cv2.circle(q_img, tuple(query_p.astype(int)), 2, (256, 0, 0), 3)
-            query_p = (scale*query_p).astype(int)
-            r_hc = reference_hypercolumn[:, :, ref_p[1], ref_p[0]].cpu()
-            visualize_hc(r_hc, query_hypercolumn.squeeze(0).cpu(), query_p, io_gin.output_dir + 'hc_'+str(k) + '.jpg',
-                        q_img, r_img)
+            # Points after optimization
+            final_query_2d = np.matmul(R.numpy(), prediction.points_3d.squeeze().T).T + t.numpy()
+            final_query_2d = np.round(from_homogeneous(np.matmul(K.numpy(), final_query_2d.T).T)).astype(int)-1
+            # Compute distances
+            d = np.sum((final_query_2d - prediction.query_inliers)**2, axis=1)
+            # Get indices of N max distances
+            N = 4
+            inds = heapq.nlargest(N, range(len(d)), d.__getitem__)
+            for cnt_idx, ref_idx in enumerate(inds):
+                #ref_idx = 0 #Change to select different point!
+                ref_p = prediction.reference_inliers[ref_idx]
+                r_img = cv2.cvtColor(cv2.imread(ref_images[k]), cv2.COLOR_BGR2RGB)
+                q_img = cv2.cvtColor(cv2.imread(query_images[k]), cv2.COLOR_BGR2RGB)
+                cv2.circle(r_img, tuple(ref_p.astype(int)), 2, (256, 0, 0), 3)
+                scale = reference_hypercolumn.shape[-1]/r_img.shape[1]
+                ref_p = (scale*ref_p).astype(int)
+                query_p = prediction.query_inliers[ref_idx]
+                cv2.circle(q_img, tuple(query_p.astype(int)), 2, (256, 0, 0), 3)
+                query_p = (scale*query_p).astype(int)
+                r_hc = reference_hypercolumn[:, :, ref_p[1], ref_p[0]].cpu()
+                visualize_hc(r_hc, query_hypercolumn.squeeze(0).cpu(), query_p,
+                        io_gin.output_dir + 'hc_img' + str(k) + '_kp' + str(ref_idx) + '_id' + str(cnt_idx) + '.jpg', q_img, r_img)
 
         if args.output in ["all", "video"]:
             frames = frames_from_track(query_images[k], model.track_, 50)
