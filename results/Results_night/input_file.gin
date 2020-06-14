@@ -13,12 +13,12 @@ plot_correspondences.plot_correspondences.export_folder = 'logs/sparse_to_dense/
 plot_correspondences.plot_image_retrieval.export_folder = 'logs/sparse_to_dense/nearest_neighbor/robotcar/'
 
 RUN_NAME = "Test"
-OUTPUT_DIR = "results/subset/"
+OUTPUT_DIR = "../Results/"
 CSV_NAME = "summary.csv"
 
 # Pre-trained model weights
 ImageRetrievalModel.checkpoint_path = 'checkpoints/robotcar/weights.pth.tar'
-ImageRetrievalModel.hypercolumn_layers = [9, 14, 17,21, 24] #[14, 17,21, 24, 28]
+ImageRetrievalModel.hypercolumn_layers = [9, 14, 17, 21, 24]
 
 # Output parameters
 IOgin.name = %RUN_NAME

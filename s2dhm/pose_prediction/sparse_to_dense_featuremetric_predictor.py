@@ -33,22 +33,26 @@ class SparseToDenseFeatureMetricPnP:
         self._network = network
 
     def _compute_sparse_reference_hypercolumn(self, reference_image,
-                                              local_reconstruction):
+                                              local_reconstruction, ref_2d = None):
         """Compute hypercolumns at every visible 3D point reprojection."""
         reference_dense_hypercolumn, image_size = \
             self._network.compute_hypercolumn(
-                [reference_image], to_cpu=True, resize=True)
+            [reference_image], to_cpu=False, resize=True)
+
         dense_keypoints, cell_size = keypoint_association.generate_dense_keypoints(
             (reference_dense_hypercolumn.shape[2:]),
             Image.open(reference_image).size[::-1], to_numpy=True)
-        dense_keypoints = torch.from_numpy(dense_keypoints)
+        device = torch.device("cpu")
+        dense_keypoints = torch.from_numpy(dense_keypoints).to(device)
+        #print(dense_keypoints)
+        #print(reference_dense_hypercolumn.shape)
         reference_sparse_hypercolumns = \
             keypoint_association.fast_sparse_keypoint_descriptor(
-                [local_reconstruction.points_2D.T],
+                [local_reconstruction.points_2D.T] if ref_2d is None else ref_2d.T,
                 dense_keypoints, reference_dense_hypercolumn)[0]
         return reference_sparse_hypercolumns, cell_size, reference_dense_hypercolumn
 
-    def run(self, query_image, reference_image):
+    def run(self, query_image, reference_image, cached_results = None):
         """Run the sparse-to-dense pose predictor."""
 
         print('>> Generating pose predictions using sparse-to-dense matching...')
@@ -60,56 +64,58 @@ class SparseToDenseFeatureMetricPnP:
         query_dense_hypercolumn_2 = query_dense_hypercolumn.squeeze().view(
             (channels, -1))
         predictions = []
-
         local_reconstruction = \
-            self._filename_to_local_reconstruction[reference_image]
-        reference_sparse_hypercolumns, cell_size, reference_dense_hypercolumn = \
-            self._compute_sparse_reference_hypercolumn(
-                reference_image, local_reconstruction)
+                self._filename_to_local_reconstruction[reference_image]
+        if cached_results is None:
+            reference_sparse_hypercolumns, cell_size, reference_dense_hypercolumn = \
+                self._compute_sparse_reference_hypercolumn(
+                    reference_image, local_reconstruction)
 
-        # Perform exhaustive search
-        matches_2D, mask = exhaustive_search.exhaustive_search(
-            query_dense_hypercolumn_2,
-            reference_sparse_hypercolumns,
-            Image.open(reference_image).size[::-1],
-            [width, height],
-            cell_size)
+            # Perform exhaustive search
+            matches_2D, mask = exhaustive_search.exhaustive_search(
+                query_dense_hypercolumn_2,
+                reference_sparse_hypercolumns,
+                Image.open(reference_image).size[::-1],
+                [width, height],
+                cell_size)
+                    # Solve PnP
+            points_2D = np.reshape(
+                matches_2D.cpu().numpy()[mask], (-1, 1, 2))
+            points_3D = np.reshape(
+                local_reconstruction.points_3D[mask], (-1, 1, 3))
+            distortion_coefficients = \
+                local_reconstruction.distortion_coefficients
+            intrinsics = local_reconstruction.intrinsics
 
-        # Solve PnP
-        points_2D = np.reshape(
-            matches_2D.cpu().numpy()[mask], (-1, 1, 2))
-        points_3D = np.reshape(
-            local_reconstruction.points_3D[mask], (-1, 1, 3))
-        distortion_coefficients = \
-            local_reconstruction.distortion_coefficients
-        intrinsics = local_reconstruction.intrinsics
+            ref_2D = local_reconstruction.points_2D[mask]
+
+        else:
+            points_2D = cached_results["query_2D"]
+            points_3D = cached_results["points_3D"]
+            distortion_coefficients = \
+                local_reconstruction.distortion_coefficients
+            intrinsics = local_reconstruction.intrinsics
+            ref_2D = cached_results["reference_2D"]
+            reference_sparse_hypercolumns, cell_size, reference_dense_hypercolumn = \
+                self._compute_sparse_reference_hypercolumn(
+                    reference_image, local_reconstruction)
+
+
         prediction = solve_pnp.solve_pnp(
             points_2D=points_2D,
             points_3D=points_3D,
             intrinsics=intrinsics,
             distortion_coefficients=distortion_coefficients,
             reference_filename=reference_image,
-            reference_2D_points=local_reconstruction.points_2D[mask],
+            reference_2D_points=ref_2D,
             reference_keypoints=None)
 
 
-        local_res= {
-        'reference_filename' : prediction.reference_filename,
-        'success': prediction.success,
-        'query_2D' : points_2D,
-        'reference_2D': local_reconstruction.points_2D[mask],
-        'points_3D': points_3D,
-        'num_matches': prediction.num_matches,
-        'num_inliers':prediction.num_inliers,
-        'inlier_mask':prediction.inlier_mask,
-        'quaternion':prediction.quaternion,
-        'matrix':prediction.matrix,
-        }
-        cache_dict[query_image] = local_res
+        #cache_dict[query_image] = local_res
 
-        cache_filename = query_image.replace(".jpg","")+".npz"
-        os.makedirs(os.path.dirname(cache_filename), exist_ok=True)
-        np.savez(cache_filename, **cache_dict)
+        #cache_filename = query_image.replace(".jpg","")+".npz"
+        #os.makedirs(os.path.dirname(cache_filename), exist_ok=True)
+        #np.savez(cache_filename, **cache_dict)
 
         # If PnP failed, fall back to nearest-neighbor prediction
         if not prediction.success:
@@ -118,18 +124,21 @@ class SparseToDenseFeatureMetricPnP:
             if prediction:
                 return prediction, query_dense_hypercolumn, reference_dense_hypercolumn
         else:
-            local_res= {
-                    'reference_filename' : prediction.reference_filename,
-                    'success': prediction.success,
-                    'query_2D' : points_2D,
-                    'reference_2D': local_reconstruction.points_2D[mask],
-                    'points_3D': points_3D,
-                    'num_matches': prediction.num_matches,
-                    'num_inliers':prediction.num_inliers,
-                    'inlier_mask':prediction.inlier_mask,
-                    'quaternion':prediction.quaternion,
-                    'matrix':prediction.matrix,
-                    }
+            if cached_results is None:
+                local_res= {
+                'reference_filename' : prediction.reference_filename,
+                'success': prediction.success,
+                'query_2D' : points_2D,
+                'reference_2D': ref_2D,
+                'points_3D': points_3D,
+                'num_matches': prediction.num_matches,
+                'num_inliers':prediction.num_inliers,
+                'inlier_mask':prediction.inlier_mask,
+                'quaternion':prediction.quaternion,
+                'matrix':prediction.matrix,
+                }
+            else:
+                local_res = {}
 #            cache_filename = query_image.replace(".jpg","")+".npz"
 #            os.makedirs(os.path.dirname(cache_filename), exist_ok=True)
 #            np.savez(cache_filename, *local_res)

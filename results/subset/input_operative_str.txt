@@ -1,0 +1,59 @@
+import datasets.robotcar_dataset
+import image_retrieval.rank_images
+import input_configs.IOgin
+import network.network
+import pose_prediction.exhaustive_search
+import pose_prediction.optimize_feature_pnp
+import pose_prediction.solve_pnp
+import pose_prediction.sparse_to_dense_predictor
+import visualization.plot_correspondences
+
+# Macros:
+# ==============================================================================
+CSV_NAME = 'summary.csv'
+IMAGE_SIZE = 512
+OUTPUT_DIR = 'results/subset/'
+RUN_NAME = 'Test'
+
+# Parameters for compute_hypercolumn:
+# ==============================================================================
+compute_hypercolumn.image_size = %IMAGE_SIZE
+
+# Parameters for forward:
+# ==============================================================================
+forward.confidence = None
+forward.scale = None
+
+# Parameters for ImageRetrievalModel:
+# ==============================================================================
+ImageRetrievalModel.checkpoint_path = 'checkpoints/robotcar/weights.pth.tar'
+ImageRetrievalModel.encoder_dim = 512
+ImageRetrievalModel.hypercolumn_layers = [9, 14, 17, 21, 24]
+ImageRetrievalModel.num_clusters = 64
+
+# Parameters for IOgin:
+# ==============================================================================
+IOgin.csv_name = %CSV_NAME
+IOgin.name = %RUN_NAME
+IOgin.output_dir = %OUTPUT_DIR
+
+# Parameters for solve_pnp:
+# ==============================================================================
+solve_pnp.minimum_inliers = 12
+solve_pnp.minimum_matches = 5
+solve_pnp.reprojection_threshold = 12.0
+solve_pnp.return_masked = True
+solve_pnp.use_ransac = True
+
+# Parameters for sparseFeaturePnP:
+# ==============================================================================
+sparseFeaturePnP.lambda_ = 0.01
+sparseFeaturePnP.loss_fn = @squared_loss
+sparseFeaturePnP.n_iters = 100
+sparseFeaturePnP.ratio_threshold = None
+sparseFeaturePnP.useGPU = False
+sparseFeaturePnP.verbose = False
+
+# Parameters for squared_loss:
+# ==============================================================================
+# None.

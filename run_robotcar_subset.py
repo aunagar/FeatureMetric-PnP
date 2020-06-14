@@ -11,7 +11,7 @@ import torch
 import cv2
 import pandas as pd
 import torch
-
+import heapq
 torch.device("cpu")
 
 sys.path.append('s2dhm/') #Should be autodetected later in __init__.py file!
@@ -33,7 +33,7 @@ from helpers.utils import from_homogeneous, to_homogeneous
 from visualization import plot_correspondences
 from visualization.create_video import *
 
-from visualize_hc import visualize_hc
+from visualize_hc import visualize_hc, visualize_hcq
 from input_configs.IOgin import IOgin
 
 # Argparse
@@ -43,13 +43,14 @@ parser.add_argument(
     '--input_config', type = str, help = 'path to gin config file', default = "input_configs/subset/default_subset.gin", required = False)
 parser.add_argument(
     "--output", type=str,help = 'what output the run should generate', choices=['all', 'video', 'visualize_hc', 'correspondences', 'keypoint_movement', 'None'],
-    default='None')
+    default='visualize_hc')
 parser.add_argument(
     '--ref_image', type = str, help = 'reference image path (relative to Image folder)', required = False)#, default='overcast-reference/rear/1417176981834751.jpg)
 parser.add_argument(
     '--query_image', type = str, help = 'query image path (relative to Image folder)', required = False)#, default='night-rain/rear/1418840689734892.jpg')
 parser.add_argument(
-    '--writetrack', type=bool, help = 'Whether the track should be written', required=False, default=False)
+    '--writetrack', type=bool, help = 'Whether the track should be written', required=False, default=True)
+
 
 def load_data(triangulation_filepath, nvm_filepath, filenames):
     filename_to_pose = data_helpers.from_nvm(nvm_filepath, filenames)
@@ -74,6 +75,10 @@ def get_pose_predictor(pose_predictor_cls: predictor.PosePredictor,
                               ranks=ranks,
                               log_images=log_images)
 
+def top_pdist(a, b, N):
+    d = np.sum((b - a)**2, axis=0)
+    return heapq.nlargest(N, range(len(d)), d.__getitem__)
+
 if __name__ == '__main__':
     args = parser.parse_args()
     DATA_PATH = "../robotcar_dataset/" #/nfs/nas12.ethz.ch/fs1201/infk_ivc_students/252-0579-00L/ntselepidis/S2DHM_datasets/RobotCar-Seasons/"
@@ -91,11 +96,12 @@ if __name__ == '__main__':
     
     io_gin = IOgin(args.input_config) # Parameters from Input file
 
-    df = pd.read_csv("featurePnP_summary.csv", sep=";")
+    df = pd.read_csv("results/Results_night/featurePnP_summary_night.csv", sep=";")
+    df=df.loc[df["query"].str.contains("night-rain"),:]
     ref_images = df["reference"].to_list()
     query_images = df["query"].to_list()
 
-    ref_images = ['overcast-reference/rear/1417177821443708.jpg']
+    #ref_images = ['overcast-reference/rear/1417177821443708.jpg']
 
     # ref_images = ['overcast-reference/rear/1417177821443708.jpg',
     #               'overcast-reference/rear/1417178379637791.jpg',
@@ -117,7 +123,7 @@ if __name__ == '__main__':
     #               'overcast-reference/rear/1417177088547051.jpg',
     #               'overcast-reference/rear/1417177821443708.jpg',
     #               'overcast-reference/rear/1417177165990619.jpg']
-    query_images = ['night-rain/rear/1418841346403822.jpg']            
+    #query_images = ['night-rain/rear/1418841346403822.jpg']            
     # query_images = ['night-rain/rear/1418841346403822.jpg',
     #               'night-rain/rear/1418841677987976.jpg',
     #               'night-rain/rear/1418841403271814.jpg',
@@ -168,14 +174,22 @@ if __name__ == '__main__':
             filename_to_local_reconstruction, net)
 
     cache_dict = {}
+
+    cache = np.load("results/Results_night/cache.npz", allow_pickle = True)
+
     
     for k in range(len(query_images)):
-        prediction, query_hypercolumn, reference_hypercolumn, cache_dict[query_images[k]]  = s2dPnP.run(query_images[k], ref_images[k])
-
+        if k==100:
+            break
+        print("Attempting",query_images[k], "...")
+        #print(cache["/local/home/ntselepidis/3DV/RobotCar-Seasons/images/"+query_images[k].replace(image_root,"")].item())
+        prediction, query_hypercolumn, reference_hypercolumn, cache_dict[query_images[k]]  = s2dPnP.run(query_images[k], ref_images[k], cache["/local/home/ntselepidis/3DV/RobotCar-Seasons/images/"+query_images[k].replace(image_root,"")].item())
+        print("Finished_hc_extraction....")
+        
         K = torch.from_numpy(filename_to_intrinsics[ref_images[k]][0]).type(torch.DoubleTensor)
         R, t, model = feature_pnp(query_hypercolumn, reference_hypercolumn, prediction, K, (1024, 1024), track=track)
-
-        if args.output in ["all", "correspondences", "keypoint_movement"]:
+        print("Finished optimization...")
+        if args.output in ["all", "correspondences", "keypoint_movement"] and False:
             outlier_threshold = 2
             local_reconstruction = filename_to_local_reconstruction[ref_images[k]]
             pts_3d = local_reconstruction.points_3D
@@ -229,20 +243,25 @@ if __name__ == '__main__':
                                                     export_filename = "qpoints_" + str(k) + ".jpg" )
 
         if args.output in ["all", "visualize_hc"]:
-            ref_idx = 0 #Change to select different point!
-            ref_p = prediction.reference_inliers[ref_idx]
-            r_img = cv2.cvtColor(cv2.imread(ref_images[k]), cv2.COLOR_BGR2RGB)
-            q_img = cv2.cvtColor(cv2.imread(query_images[k]), cv2.COLOR_BGR2RGB)
-            cv2.circle(r_img, tuple(ref_p.astype(int)), 2, (256, 0, 0), 3)
-            scale = reference_hypercolumn.shape[-1]/r_img.shape[1]
-            ref_p = (scale*ref_p).astype(int)
-            query_p = prediction.query_inliers[ref_idx]
-            cv2.circle(q_img, tuple(query_p.astype(int)), 2, (256, 0, 0), 3)
-            query_p = (scale*query_p).astype(int)
-            r_hc = reference_hypercolumn[:, :, ref_p[1], ref_p[0]].cpu()
-            visualize_hc(r_hc, query_hypercolumn.squeeze(0).cpu(), query_p, io_gin.output_dir + 'hc_'+str(k) + '.jpg',
-                        q_img, r_img)
+            print(model.track_["points2d"][0].dtype)
+            ref_indices = top_pdist(model.track_["points2d"][0].T.numpy(), model.track_["points2d"][-1].T.numpy(), 4)
+            model.track_["hc_dict"] = {}
 
+            for ref_idx in ref_indices:#ref_idx = 0 #Change to select different point!
+                ref_p = prediction.reference_inliers[ref_idx]
+                r_img = cv2.cvtColor(cv2.imread(ref_images[k]), cv2.COLOR_BGR2RGB)
+                q_img = cv2.cvtColor(cv2.imread(query_images[k]), cv2.COLOR_BGR2RGB)
+                cv2.circle(r_img, tuple(ref_p.astype(int)), 2, (256, 0, 0), 3)
+                scale = reference_hypercolumn.shape[-1]/r_img.shape[1]
+                ref_p = (scale*ref_p).astype(int)
+                query_p = prediction.query_inliers[ref_idx]
+                cv2.circle(q_img, tuple(query_p.astype(int)), 2, (256, 0, 0), 3)
+                query_p = (scale*query_p).astype(int)
+                r_hc = reference_hypercolumn[:, :, ref_p[1], ref_p[0]].cpu()
+                hcname = io_gin.output_dir + 'query'+str(k)+"_hc" +str(ref_idx)+ '.png'
+                visualize_hcq(r_hc, query_hypercolumn.squeeze(0).cpu(), query_p, hcname,
+                            q_img, r_img)
+                model.track_["hc_dict"][ref_idx] = hcname
         if args.output in ["all", "video"]:
             frames = frames_from_track(query_images[k], model.track_, 50)
             save_video(frames,io_gin.output_dir+"_video_"+str(k)+".mp4") #Change
@@ -255,13 +274,14 @@ if __name__ == '__main__':
 
         """Write to DataFrame"""
         result_frame.loc[k] = [ref_images[k], query_images[k], prediction.num_matches, model.best_num_inliers_, model.initial_cost_.item(), model.best_cost_.item(), track_pickle_path]
+        result_frame.to_csv(io_gin.output_dir + io_gin.csv_name, sep = ";", index = False)
 
 
     result_frame.to_csv(io_gin.output_dir + io_gin.csv_name, sep = ";", index = False)
 
     print(gin.operative_config_str())
 
-    np.savez( io_gin.output_dir + "cache.npz", **cache_dict)
+    #np.savez( io_gin.output_dir + "cache.npz", **cache_dict)
 
     with open(io_gin.output_dir + "input_operative_str.txt", "w") as doc:
         doc.write(str(gin.operative_config_str()))

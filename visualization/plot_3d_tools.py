@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import FancyArrowPatch
 from mpl_toolkits.mplot3d import proj3d
 
+
 def fig2data (fig):
     """
     @brief Convert a Matplotlib figure to a 3D numpy array with RGB channels and return it
@@ -24,7 +25,8 @@ def fig2data (fig):
     buf.shape = (h,w,3)
  
     # canvas.tostring_argb give pixmap in RGB mode.
-    buf = np.roll( buf, 2, axis = 2 )
+    #buf = np.roll( buf, 2, axis = 2 )
+    #print(buf.shape)
     return buf
 
 class Arrow3D(FancyArrowPatch):
