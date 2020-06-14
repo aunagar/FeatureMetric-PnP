@@ -41,7 +41,8 @@ class SparseToDenseFeatureMetricPnP:
         dense_keypoints, cell_size = keypoint_association.generate_dense_keypoints(
             (reference_dense_hypercolumn.shape[2:]),
             Image.open(reference_image).size[::-1], to_numpy=True)
-        dense_keypoints = torch.from_numpy(dense_keypoints)
+        device = torch.device('cuda' if torch.cuda.is_available() else "cpu")
+        dense_keypoints = torch.from_numpy(dense_keypoints).to(device)
         reference_sparse_hypercolumns = \
             keypoint_association.fast_sparse_keypoint_descriptor(
                 [local_reconstruction.points_2D.T],
