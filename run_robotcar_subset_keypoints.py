@@ -96,12 +96,10 @@ if __name__ == '__main__':
     
     io_gin = IOgin(args.input_config) # Parameters from Input file
 
-    #df = pd.read_csv("results/Results_night/summary_enr.csv", sep=";")
-    #df=df.loc[df["query_image_origin"].str.contains("night/"),:]
-    #df["diff"] = df["initial_cost"] - df["final_cost"]
-    #df.sort_values(by="mean_pixel_change", ascending = False, inplace = True)
-    df = pd.read_csv("results/subset/night/summary.csv",sep=";")
-
+    df = pd.read_csv("results/Results_night/summary_enr.csv", sep=";")
+    df=df.loc[df["query_image_origin"].str.contains("night/"),:]
+    df["diff"] = df["initial_cost"] - df["final_cost"]
+    df.sort_values(by="mean_pixel_change", ascending = False, inplace = True)
     ref_images = df["reference_image_origin"].to_list()
     query_images = df["query_image_origin"].to_list()
 
@@ -181,9 +179,9 @@ if __name__ == '__main__':
 
     cache = np.load("results/Results_night/cache.npz", allow_pickle = True,)
 
-    idx = 1
+    idx = 0
     for k in range(len(query_images)):
-        if k != idx:
+        if k <21:
             continue
         print("Attempting",query_images[k], "...")
         #print(cache["/local/home/ntselepidis/3DV/RobotCar-Seasons/images/"+query_images[k].replace(image_root,"")].item())

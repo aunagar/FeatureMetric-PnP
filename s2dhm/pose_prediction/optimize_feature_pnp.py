@@ -47,7 +47,7 @@ def feature_pnp_multi(query_hypercolumns, reference_hypercolumns, prediction, K,
     return R, t, model
 
 
-def feature_pnp(query_hypercolumns, reference_hypercolumns, prediction, K, image_shape, track = False, feature_pyramid = None):
+def feature_pnp(query_hypercolumns, reference_hypercolumns, prediction, K, image_shape, track = False, feature_pyramid = None, t_offset = np.array([0,0,0])):
     relative_shape = np.array([reference_hypercolumns.shape[2] / image_shape[0], reference_hypercolumns.shape[3] / image_shape[1]])
     pts3D = torch.from_numpy( prediction.points_3d.reshape(-1,3) ) 
     ref2d = torch.from_numpy(relative_shape).view(1,2) * torch.from_numpy(prediction.reference_inliers)
@@ -57,7 +57,7 @@ def feature_pnp(query_hypercolumns, reference_hypercolumns, prediction, K, image
     feature_map_query = query_hypercolumns.squeeze(0).type(torch.DoubleTensor)
     # T_init = filename_to_pose['/'.join(ref_images[0].split('/')[-3:])][1]
     T_init = prediction.matrix
-    R, t = torch.from_numpy(T_init[:3, :3]), torch.from_numpy(T_init[:3,3])
+    R, t = torch.from_numpy(T_init[:3, :3]), torch.from_numpy(T_init[:3,3] + t_offset)
     feature_grad_x, feature_grad_y = sobel_filter(feature_map_query)
     
     model = sparseFeaturePnP() #Parameters from gin!
