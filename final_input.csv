@@ -1,0 +1,5 @@
+reference_image_origin;query_image_origin;num_initial_matches;num_final_matches;initial_cost;final_cost;track_pickle_path
+../robotcar_dataset/overcast-reference/rear/1417177630016049.jpg;../robotcar_dataset/night/rear/1418236317473564.jpg;653;355;0.32666548521732636;0.3000238448123023;results/subset/convergence_kp/query_6_track.p
+../robotcar_dataset/overcast-reference/rear/1417176919661788.jpg;../robotcar_dataset/night/rear/1418235482685151.jpg;631;167;0.39633381462505163;0.3754345887110246;results/subset/convergence_kp/query_9_track.p
+../robotcar_dataset/overcast-reference/rear/1417176931750953.jpg;../robotcar_dataset/night/rear/1418235495410554.jpg;742;251;0.33774765410164675;0.31496597756886946;results/subset/convergence_kp/query_13_track.p
+../robotcar_dataset/overcast-reference/rear/1417178788671309.jpg;../robotcar_dataset/night/rear/1418235314800423.jpg;505;101;0.6213320567652244;0.4653390926251023;results/subset/convergence/query_0_track.p

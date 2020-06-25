@@ -4,7 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from pathlib import Path
 from typing import List
-
+from matplotlib.patches import Circle
 
 @gin.configurable
 def plot_image_retrieval(left_image_path: str,
@@ -140,21 +140,22 @@ def plot_points_before_and_after_optimization(
     
     query_image = cv2.cvtColor(cv2.imread(query_image_path), cv2.COLOR_BGR2RGB)
     Path(export_folder, export_filename).parent.mkdir(exist_ok=True, parents=True)
-
+    fig,ax = plt.subplots(figsize=(16, 7), dpi=100)
+    fig.tight_layout()
+    plt.imshow(query_image)
+    plt.title(title)
     for i in range(len(query_keypoints_before_opt)):
         pts_before = query_keypoints_before_opt[i].pt
         pts_after  = query_keypoints_after_opt[i].pt
         if is_outlier[i]:
             continue
         else:
-            cv2.circle(query_image, tuple(map(int, pts_before)), 2, (255, 0, 0), 1) # Red
-            cv2.circle(query_image, tuple(map(int, pts_after)), 2, (0, 255, 0), 1) # Green
-
-    fig = plt.figure(figsize=(16, 7), dpi=1000)
-    plt.imshow(query_image)
-    plt.title(title)
+            circ = Circle((pts_before[0],pts_before[1]),1.5, ec = 'lime', fill = True, fc = 'lime')
+            ax.add_patch(circ)
+            #circ = Circle((pts_after[0],pts_after[1]),1.5, ec = 'red', fill = True, fc = 'red')
+            #ax.add_patch(circ)
     plt.axis('off')
-    fig.savefig(str(Path(export_folder, export_filename)))
+    fig.savefig(str(Path(export_folder, export_filename)), dpi = 500)
     plt.close(fig)
 
 def plot_points_on_reference_image(
@@ -168,16 +169,26 @@ def plot_points_on_reference_image(
     ref_image = cv2.cvtColor(cv2.imread(ref_image_path), cv2.COLOR_BGR2RGB)
     Path(export_folder, export_filename).parent.mkdir(exist_ok=True, parents=True)
 
+    shape = ref_image.shape[0]
+    half_shape = int(ref_image.shape[0]/2)
+    top_left = ref_image[:half_shape, :half_shape, :]
+    top_right = ref_image[:half_shape, half_shape:shape, :]
+    bottom_left = ref_image[half_shape:shape, :half_shape,:]
+    bottom_right = ref_image[half_shape:shape, half_shape:shape,:]
+
+
+    fig,ax = plt.subplots(figsize=(16, 7), dpi=100)
+    fig.tight_layout()
+    plt.imshow(ref_image)
+    plt.title(title)
     for i in range(len(ref_keypoints)):
-        pts = ref_keypoints[i].pt
         if is_outlier[i]:
             continue
         else:
-            cv2.circle(ref_image, tuple(map(int, pts)), 2, (0, 0, 255), 1)
-
-    fig = plt.figure(figsize=(16, 7), dpi=1000)
-    plt.imshow(ref_image)
-    plt.title(title)
+            xx = ref_keypoints[i].pt[0]
+            yy = ref_keypoints[i].pt[1]
+            circ = Circle((xx,yy),1.5, ec = 'blue', fill = True, fc = 'blue')
+            ax.add_patch(circ)
     plt.axis('off')
-    fig.savefig(str(Path(export_folder, export_filename)))
+    fig.savefig(str(Path(export_folder,export_filename)), dpi = 500)
     plt.close(fig)

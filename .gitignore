@@ -31,3 +31,4 @@ submit_cmu.sh
 submit_robotcar_subset.sh
 *.png
 *.mp4
+archive/

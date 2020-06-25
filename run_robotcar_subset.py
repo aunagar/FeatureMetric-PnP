@@ -82,7 +82,6 @@ def top_pdist(a, b, N):
 if __name__ == '__main__':
     args = parser.parse_args()
     DATA_PATH = "../robotcar_dataset/" #/nfs/nas12.ethz.ch/fs1201/infk_ivc_students/252-0579-00L/ntselepidis/S2DHM_datasets/RobotCar-Seasons/"
-    
     result_frame = pd.DataFrame(columns=["reference_image_origin", "query_image_origin","num_initial_matches", "num_final_matches", "initial_cost", "final_cost","track_pickle_path"])
 
     # put triangulation file in the same folder as robotcar data
@@ -96,11 +95,11 @@ if __name__ == '__main__':
     
     io_gin = IOgin(args.input_config) # Parameters from Input file
 
-    #df = pd.read_csv("results/Results_night/summary_enr.csv", sep=";")
-    #df=df.loc[df["query_image_origin"].str.contains("night/"),:]
-    #df["diff"] = df["initial_cost"] - df["final_cost"]
-    #df.sort_values(by="mean_pixel_change", ascending = False, inplace = True)
-    df = pd.read_csv("results/subset/night/summary.csv",sep=";")
+    # df = pd.read_csv("results/Results_night/summary_enr.csv", sep=";")
+    # df=df.loc[df["query_image_origin"].str.contains("night/"),:]
+    # df["diff"] = df["initial_cost"] - df["final_cost"]
+    # df.sort_values(by="mean_pixel_change", ascending = False, inplace = True)
+    df = pd.read_csv("final_input.csv",sep=";")
 
     ref_images = df["reference_image_origin"].to_list()
     query_images = df["query_image_origin"].to_list()
@@ -181,9 +180,8 @@ if __name__ == '__main__':
 
     cache = np.load("results/Results_night/cache.npz", allow_pickle = True,)
 
-    idx = 1
     for k in range(len(query_images)):
-        if k != idx:
+        if k !=3:
             continue
         print("Attempting",query_images[k], "...")
         #print(cache["/local/home/ntselepidis/3DV/RobotCar-Seasons/images/"+query_images[k].replace(image_root,"")].item())
@@ -192,8 +190,16 @@ if __name__ == '__main__':
         
         K = torch.from_numpy(filename_to_intrinsics[ref_images[k]][0]).type(torch.DoubleTensor)
 
-
-        R, t, model = feature_pnp(query_hypercolumn, reference_hypercolumn, prediction, K, (1024, 1024), track=track)
+        if k == 3:
+            t_offset=np.array([0.1,1.0,1.0])
+        elif k == 1:
+            #R, t, model = feature_pnp(query_hypercolumn, reference_hypercolumn, prediction, K, (1024, 1024), track=track, t_offset=np.array([-0.05,-0.05,0.02]))  
+            t_offset=np.array([-0.02,-0.03,0.01])#t_offset = np.array([-1.0,-0.5,0.5])
+        elif k == 2:
+            t_offset=np.array([0.0,-0.9,1.0]);
+        else:
+            t_offset=np.array([0.0,0.0,0.0]) 
+        R, t, model = feature_pnp(query_hypercolumn, reference_hypercolumn, prediction, K, (1024, 1024), track=track, t_offset=t_offset)
         print("Finished optimization...")
         if args.output in ["all", "correspondences", "keypoint_movement"]:
             outlier_threshold = 2
@@ -241,19 +247,20 @@ if __name__ == '__main__':
                                                     kpt_to_cv2(cache_item["reference_2D"][cache_item["inlier_mask"]]),
                                                     outliers_ref, title = 'Keypoints on reference image',
                                                     export_folder = io_gin.output_dir + "points/",
-                                                    export_filename = "rpoints_" + str(k) + ".jpg" )
+                                                    export_filename = "rpoints_" + str(k) + ".png" )
                 plot_correspondences.plot_points_before_and_after_optimization(
                                                     query_images[k],
                                                     kpt_to_cv2(model.track_["points2d"][0]),
                                                     kpt_to_cv2(model.track_["points2d"][-1]),
                                                     outliers_ref, title = 'Keypoints before and after optimization',
                                                     export_folder = io_gin.output_dir + "points/",
-                                                    export_filename = "qpoints_" + str(k) + ".jpg" )
+                                                    export_filename = "qpoints_" + str(k) + ".png" )
 
         if args.output in ["all", "visualize_hc"]:
             print(model.track_["points2d"][0].dtype)
-            ref_indices = top_pdist(model.track_["points2d"][0].T.numpy(), model.track_["points2d"][-1].T.numpy(), 7)
+            ref_indices = top_pdist(model.track_["points2d"][0].T.numpy(), model.track_["points2d"][-1].T.numpy(), 10)
             model.track_["hc_dict"] = {}
+            model.track_["ranking"] = ref_indices
 
             for ref_idx in ref_indices:#ref_idx = 0 #Change to select different point!
                 ref_p = prediction.reference_inliers[ref_idx]

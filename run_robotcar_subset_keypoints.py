@@ -40,10 +40,10 @@ from input_configs.IOgin import IOgin
 parser = argparse.ArgumentParser(
     description = 'Sparse-to-dense Hypercolumn Matching')
 parser.add_argument(
-    '--input_config', type = str, help = 'path to gin config file', default = "input_configs/subset/default_subset.gin", required = False)
+    '--input_config', type = str, help = 'path to gin config file', default = "input_configs/subset/default_subset_kp.gin", required = False)
 parser.add_argument(
     "--output", type=str,help = 'what output the run should generate', choices=['all', 'video', 'visualize_hc', 'correspondences', 'keypoint_movement', 'None'],
-    default='visualize_hc')
+    default='keypoint_movement')
 parser.add_argument(
     '--ref_image', type = str, help = 'reference image path (relative to Image folder)', required = False)#, default='overcast-reference/rear/1417176981834751.jpg)
 parser.add_argument(
@@ -100,6 +100,7 @@ if __name__ == '__main__':
     df=df.loc[df["query_image_origin"].str.contains("night/"),:]
     df["diff"] = df["initial_cost"] - df["final_cost"]
     df.sort_values(by="mean_pixel_change", ascending = False, inplace = True)
+    #df = pd.read_csv("results/subset/convergence/summary.csv", sep=";")
     ref_images = df["reference_image_origin"].to_list()
     query_images = df["query_image_origin"].to_list()
 
@@ -181,7 +182,7 @@ if __name__ == '__main__':
 
     idx = 0
     for k in range(len(query_images)):
-        if k <21:
+        if k not in [6,9,13,16] or k>=21:
             continue
         print("Attempting",query_images[k], "...")
         #print(cache["/local/home/ntselepidis/3DV/RobotCar-Seasons/images/"+query_images[k].replace(image_root,"")].item())
@@ -239,14 +240,14 @@ if __name__ == '__main__':
                                                     kpt_to_cv2(cache_item["reference_2D"][cache_item["inlier_mask"]]),
                                                     outliers_ref, title = 'Keypoints on reference image',
                                                     export_folder = io_gin.output_dir + "points/",
-                                                    export_filename = "rpoints_" + str(k) + ".jpg" )
+                                                    export_filename = "rpoints_" + str(k) + ".svg" )
                 plot_correspondences.plot_points_before_and_after_optimization(
                                                     query_images[k],
                                                     kpt_to_cv2(model.track_["points2d"][0]),
                                                     kpt_to_cv2(model.track_["points2d"][-1]),
                                                     outliers_ref, title = 'Keypoints before and after optimization',
                                                     export_folder = io_gin.output_dir + "points/",
-                                                    export_filename = "qpoints_" + str(k) + ".jpg" )
+                                                    export_filename = "qpoints_" + str(k) + ".svg" )
 
         if args.output in ["all", "visualize_hc"]:
             print(model.track_["points2d"][0].dtype)
