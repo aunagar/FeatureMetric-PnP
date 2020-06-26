@@ -1,10 +1,12 @@
 #/bin/bash
 CORES=2
 MEMORY=32768 # Per core
-TIME=00:05
-CMU_SLICE=13
-NumImages=2
-SubSliceSize=2
+TIME=24:00
+#CMU_SLICE=17
+#NumImages=4682
+CMU_SLICE=4
+NumImages=4728
+SubSliceSize=350
 DivSubSlices=$(( $NumImages / $SubSliceSize))
 ModSubSlices=$(( $NumImages % $SubSliceSize))
 

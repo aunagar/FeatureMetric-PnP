@@ -10,7 +10,7 @@ CMU_SLICES = ['slice2', 'slice3', 'slice4', 'slice5',
               'slice18', 'slice19', 'slice20', 'slice21',
                'slice22', 'slice23', 'slice24', 'slice25']
 
-ExtendedCMUDataset.root = '/cluster/scratch/aunagar/featurePnP/data/extended-cmu/'
+ExtendedCMUDataset.root = '/cluster/scratch/ntselepidis/Extended-CMU-Seasons/'
 ExtendedCMUDataset.image_folder = ''
 ExtendedCMUDataset.reference_sequences = %CMU_SLICES
 ExtendedCMUDataset.query_sequences = %CMU_SLICES
