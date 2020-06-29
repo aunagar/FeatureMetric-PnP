@@ -16,6 +16,7 @@ from typing import List
 from pose_prediction.optimize_feature_pnp import optimize_feature_pnp
 import pandas as pd
 import pickle
+import time
 
 # for d2-net (import only if avaible) -- if you want to use d2-net features
 # this module should be visible (path is already added to train.py)
@@ -24,6 +25,18 @@ try:
 except ModuleNotFoundError:
     print("Did not find the module required for d2-net features.")
     pass
+
+def read_npz(dirpath):
+    filenames = []
+    for (dp, dn, fn) in os.walk(dirpath + "cached_matches/"):
+        filenames.extend(fn)
+        break
+    files = dict()
+    for fn in filenames:
+        npz = np.load(dirpath + "cached_matches/" + fn,allow_pickle = True)
+        npz = {key:npz[key].item() for key in npz}
+        files.update(npz)
+    return files
 
 @gin.configurable
 class SparseToDensePredictor(predictor.PosePredictor):
@@ -73,6 +86,12 @@ class SparseToDensePredictor(predictor.PosePredictor):
         """Run the sparse-to-dense pose predictor."""
 
         print('>> Generating pose predictions using sparse-to-dense matching...')
+        if self._only_optimization:
+            try:
+                file_dict = read_npz(self._output_path)
+            except FileNotFoundError:
+                raise("Make sure .npz data is available in output_path/cached_matches/ folder")
+
         output = []
 
         tqdm_bar = tqdm(enumerate(self._ranks.T), total=self._ranks.shape[1],
@@ -119,72 +138,89 @@ class SparseToDensePredictor(predictor.PosePredictor):
             predictions = []
 
             for j in rank[:self._top_N]: #For n reference images
-
-                # Compute dense reference hypercolumns
                 nearest_neighbor = self._dataset.data['reference_image_names'][j]
-                local_reconstruction = \
-                    self._filename_to_local_reconstruction[nearest_neighbor]
-                reference_sparse_hypercolumns, cell_size = \
-                    self._compute_sparse_reference_hypercolumn(
-                        nearest_neighbor, local_reconstruction)
 
-                # Perform exhaustive search
-                matches_2D, mask = exhaustive_search.exhaustive_search(
-                    query_dense_hypercolumn,
-                    reference_sparse_hypercolumns,
-                    Image.open(nearest_neighbor).size[::-1],
-                    [width, height],
-                    cell_size)
+                intrinsics = self._filename_to_local_reconstruction[nearest_neighbor].intrinsics
+                if self._only_optimization == False:
+                    local_reconstruction = \
+                        self._filename_to_local_reconstruction[nearest_neighbor]
+                    reference_sparse_hypercolumns, cell_size = \
+                        self._compute_sparse_reference_hypercolumn(
+                            nearest_neighbor, local_reconstruction)
 
-                # Solve PnP
-                points_2D = np.reshape(
-                    matches_2D.cpu().numpy()[mask], (-1, 1, 2))
-                points_3D = np.reshape(
-                    local_reconstruction.points_3D[mask], (-1, 1, 3))
-                distortion_coefficients = \
-                    local_reconstruction.distortion_coefficients
-                intrinsics = local_reconstruction.intrinsics
-                prediction = solve_pnp.solve_pnp(
-                    points_2D=points_2D,
-                    points_3D=points_3D,
-                    intrinsics=intrinsics,
-                    distortion_coefficients=distortion_coefficients,
-                    reference_filename=nearest_neighbor, #Reference filename
-                    reference_2D_points=local_reconstruction.points_2D[mask],
-                    reference_keypoints=None)
+                    # Perform exhaustive search
+                    matches_2D, mask = exhaustive_search.exhaustive_search(
+                        query_dense_hypercolumn,
+                        reference_sparse_hypercolumns,
+                        Image.open(nearest_neighbor).size[::-1],
+                        [width, height],
+                        cell_size)
 
-                # If PnP failed, fall back to nearest-neighbor prediction
-                
-                if not prediction.success:
-                    prediction = self._nearest_neighbor_prediction(
-                        nearest_neighbor)
-                    if prediction:
-                        # Add full matches to run FeatureMetricPnP on top of NN
-                        prediction = prediction._replace(num_matches=points_2D.shape[0],
-                        num_inliers=0,
-                        reference_inliers=local_reconstruction.points_2D[mask],
-                        query_inliers=np.squeeze(points_2D),
-                        points_3d = points_3D)
+                    # Solve PnP
+                    points_2D = np.reshape(
+                        matches_2D.cpu().numpy()[mask], (-1, 1, 2))
+                    points_3D = np.reshape(
+                        local_reconstruction.points_3D[mask], (-1, 1, 3))
+                    distortion_coefficients = \
+                        local_reconstruction.distortion_coefficients
+                    intrinsics = local_reconstruction.intrinsics
+                    prediction = solve_pnp.solve_pnp(
+                        points_2D=points_2D,
+                        points_3D=points_3D,
+                        intrinsics=intrinsics,
+                        distortion_coefficients=distortion_coefficients,
+                        reference_filename=nearest_neighbor, #Reference filename
+                        reference_2D_points=local_reconstruction.points_2D[mask],
+                        reference_keypoints=None)
+
+                    # If PnP failed, fall back to nearest-neighbor prediction
+                    
+                    if not prediction.success:
+                        prediction = self._nearest_neighbor_prediction(
+                            nearest_neighbor)
+                        if prediction:
+                            # Add full matches to run FeatureMetricPnP on top of NN
+                            prediction = prediction._replace(num_matches=points_2D.shape[0],
+                            num_inliers=0,
+                            reference_inliers=local_reconstruction.points_2D[mask],
+                            query_inliers=np.squeeze(points_2D),
+                            points_3d = points_3D)
+                            predictions.append(prediction)
+                    else:
                         predictions.append(prediction)
+                    if self._cache_results:
+                        local_res= {
+                        'reference_filename' : prediction.reference_filename,
+                        'success': prediction.success,
+                        'query_2D' : points_2D,
+                        'reference_2D': local_reconstruction.points_2D[mask],
+                        'points_3D': points_3D,
+                        'num_matches': prediction.num_matches,
+                        'num_inliers':prediction.num_inliers,
+                        'inlier_mask':prediction.inlier_mask,
+                        'quaternion':prediction.quaternion,
+                        'matrix':prediction.matrix,
+                        }
+                        cache_dict[query_image + ":" + prediction.reference_filename] = local_res
                 else:
+                    key = query_image + ":" + nearest_neighbor
+                    f_data = file_dict[key]
+                    prediction = solve_pnp.Prediction(
+                                success=f_data['success'],
+                                num_matches=f_data['num_matches'],
+                                num_inliers=f_data['num_inliers'],
+                                reference_inliers=f_data['reference_2D'][f_data['inlier_mask']],
+                                query_inliers=f_data['query_2D'][f_data['inlier_mask']],
+                                points_3d=f_data['points_3D'][f_data['inlier_mask']],
+                                quaternion=f_data['quaternion'],
+                                matrix=f_data['matrix'],
+                                reference_filename=f_data['reference_filename'],
+                                reference_keypoints=None,
+                                inlier_mask = f_data['inlier_mask'])
                     predictions.append(prediction)
-                if self._cache_results:
-                    local_res= {
-                    'reference_filename' : prediction.reference_filename,
-                    'success': prediction.success,
-                    'query_2D' : points_2D,
-                    'reference_2D': local_reconstruction.points_2D[mask],
-                    'points_3D': points_3D,
-                    'num_matches': prediction.num_matches,
-                    'num_inliers':prediction.num_inliers,
-                    'inlier_mask':prediction.inlier_mask,
-                    'quaternion':prediction.quaternion,
-                    'matrix':prediction.matrix,
-                    }
-                    cache_dict[query_image + ":" + prediction.reference_filename] = local_res
 
             if len(predictions):
-                if self._cache_results:
+                if (self._cache_results and not self._only_optimization):
                     cache_filename = self._output_path + "cached_matches/" + self._cache_filename
                     os.makedirs(os.path.dirname(cache_filename), exist_ok=True)
                     np.savez(cache_filename, **cache_dict)
@@ -198,11 +234,12 @@ class SparseToDensePredictor(predictor.PosePredictor):
                     
                     print("running optimization for query = {} and reference = {}".format(query_image,
                                                                     best_prediction.reference_filename) )
-                                          
+                    st = time.time()  
                     t, quaternion, model = optimize_feature_pnp(query_dense_hypercolumn.view(channels, width, height)[None, ...],
                                         net = self._network, prediction = best_prediction, K = intrinsics, track = self.track,
                                         features = self.features)
-                    
+                    en = time.time()
+                    print("Time for optimization is : ", en - st)
                     # track file
                     if self.track:
                         track_pickle_path=self._output_path+"track_"+str(cnt)+".p"

@@ -38,6 +38,8 @@ parser.add_argument('--cmu_slice', type=int, default=2)
 parser.add_argument('--start', type=int, default=-1)
 parser.add_argument('--end', type=int, default=-1)
 
+# Enable Only optimization
+parser.add_argument('--only_optimization', action='store_true')
 
 @gin.configurable
 def get_dataset_loader(dataset_loader_cls):
@@ -49,12 +51,14 @@ def get_pose_predictor(pose_predictor_cls: predictor.PosePredictor,
                        network: network.ImageRetrievalModel,
                        ranks: np.ndarray,
                        log_images: bool,
-                       cache_results:bool):
+                       cache_results:bool,
+                       only_optimization:bool):
     return pose_predictor_cls(dataset=dataset,
                               network=network,
                               ranks=ranks,
                               log_images=log_images,
-                              cache_results=cache_results)
+                              cache_results=cache_results,
+                              only_optimization=only_optimization)
 
 def bind_cmu_parameters(cmu_slice, mode, start=-1, end=-1):
     """Update CMU gin parameters to match chosen slice."""
@@ -125,7 +129,8 @@ def main(args):
                                         network=net,
                                         ranks=ranks,
                                         log_images=args.log_images,
-                                        cache_results=args.cache_results)
+                                        cache_results=args.cache_results,
+                                        only_optimization=args.only_optimization)
 
     pose_predictor.save(pose_predictor.run(args.start, args.end))
 
