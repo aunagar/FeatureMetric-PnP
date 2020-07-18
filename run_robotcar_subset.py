@@ -10,6 +10,7 @@ import pickle
 import torch
 import cv2
 import pandas as pd
+import torch
 import heapq
 
 sys.path.append('s2dhm/') #Should be autodetected later in __init__.py file!
@@ -31,7 +32,7 @@ from helpers.utils import from_homogeneous, to_homogeneous
 from visualization import plot_correspondences
 from visualization.create_video import *
 
-from visualize_hc import visualize_hc
+from visualize_hc import visualize_hc, visualize_hcq
 from input_configs.IOgin import IOgin
 
 # Argparse
@@ -299,10 +300,11 @@ if __name__ == '__main__':
             # Compute distances
             d = np.sum((final_query_2d - prediction.query_inliers)**2, axis=1)
             # Get indices of N max distances
-            N = 4
+            N = 10
             inds = heapq.nlargest(N, range(len(d)), d.__getitem__)
-            for cnt_idx, ref_idx in enumerate(inds):
-                #ref_idx = 0 #Change to select different point!
+            model.track_["hc_dict"] = {}
+
+            for ref_idx in inds:
                 ref_p = prediction.reference_inliers[ref_idx]
                 r_img = cv2.cvtColor(cv2.imread(ref_images[k]), cv2.COLOR_BGR2RGB)
                 q_img = cv2.cvtColor(cv2.imread(query_images[k]), cv2.COLOR_BGR2RGB)
@@ -313,9 +315,10 @@ if __name__ == '__main__':
                 cv2.circle(q_img, tuple(query_p.astype(int)), 2, (256, 0, 0), 3)
                 query_p = (scale*query_p).astype(int)
                 r_hc = reference_hypercolumn[:, :, ref_p[1], ref_p[0]].cpu()
-                visualize_hc(r_hc, query_hypercolumn.squeeze(0).cpu(), query_p,
-                        io_gin.output_dir + 'hc_img' + str(k) + '_kp' + str(ref_idx) + '_id' + str(cnt_idx) + '.jpg', q_img, r_img)
-
+                hcname = io_gin.output_dir + 'query'+str(k)+"_hc" +str(ref_idx)+ '.png'
+                visualize_hcq(r_hc, query_hypercolumn.squeeze(0).cpu(), query_p, hcname,
+                        q_img, r_img)
+                model.track_["hc_dict"][ref_idx] = hcname
         if args.output in ["all", "video"]:
             frames = frames_from_track(query_images[k], model.track_, 50)
             save_video(frames,io_gin.output_dir+"_video_"+str(k)+".mp4") #Change
@@ -328,6 +331,7 @@ if __name__ == '__main__':
 
         """Write to DataFrame"""
         result_frame.loc[k] = [ref_images[k], query_images[k], prediction.num_matches, model.best_num_inliers_, model.initial_cost_.item(), model.best_cost_.item(), track_pickle_path]
+        result_frame.to_csv(io_gin.output_dir + io_gin.csv_name, sep = ";", index = False)
 
 
     result_frame.to_csv(io_gin.output_dir + io_gin.csv_name, sep = ";", index = False)
