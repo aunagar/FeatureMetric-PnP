@@ -142,6 +142,7 @@ class SparseToDensePredictor(predictor.PosePredictor):
 
                 intrinsics = self._filename_to_local_reconstruction[nearest_neighbor].intrinsics
                 if self._only_optimization == False:
+                    print("runnning exhaustive matching")
                     local_reconstruction = \
                         self._filename_to_local_reconstruction[nearest_neighbor]
                     reference_sparse_hypercolumns, cell_size = \
@@ -203,7 +204,10 @@ class SparseToDensePredictor(predictor.PosePredictor):
                         }
                         cache_dict[query_image + ":" + prediction.reference_filename] = local_res
                 else:
-                    key = query_image + ":" + nearest_neighbor
+                    # key = query_image + ":" + nearest_neighbor
+                    # f_data = file_dict[key]
+                    print("running only optimization")
+                    key = query_image
                     f_data = file_dict[key]
                     prediction = solve_pnp.Prediction(
                                 success=f_data['success'],
@@ -217,7 +221,8 @@ class SparseToDensePredictor(predictor.PosePredictor):
                                 reference_filename=f_data['reference_filename'],
                                 reference_keypoints=None,
                                 inlier_mask = f_data['inlier_mask'])
-                    predictions.append(prediction)
+                    if len(predictions) == 0:
+                        predictions.append(prediction)
 
             if len(predictions):
                 if (self._cache_results and not self._only_optimization):

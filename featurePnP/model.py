@@ -180,6 +180,11 @@ class sparseFeaturePnP(nn.Module):
                     feature_grad_x, feature_grad_y,*args, **kwargs):
                     
         self.initial_cost_= self.compute_cost(pts3D, kwargs["R_init"], kwargs["t_init"], feature_map_query, feature_ref, *args)
+        if self.initial_cost_ == None:
+            if self.useGPU:
+                return kwargs["R_init"].cpu(), kwargs["t_init"].cpu()
+            else:
+                return kwargs["R_init"], kwargs["t_init"]
         channels = feature_map_query.shape[0]
 
         if feature_pyramid is None:
@@ -218,6 +223,8 @@ class sparseFeaturePnP(nn.Module):
         # We only take supported points
         points_2d_supported = points_2d[mask_supported,:]
         points_3d_supported = points_3d[mask_supported,:]
+        if points_2d_supported.shape[0] == 0:
+            return None
 
         error = indexing_(feature_map_query, torch.flip(points_2d_supported,(1,)), im_width, im_height) - feature_ref[mask_supported]
 
@@ -431,7 +438,11 @@ class sparseFeaturePnP(nn.Module):
             # Mask new points
             new_points_2d_supported = new_points_2d[mask_supported,:]
             new_points_3d_supported = new_points_3d[mask_supported,:]
-            
+            if new_points_2d_supported.shape[0] == 0:
+                if self.useGPU:
+                    return R.cpu(), t.cpu()
+                else:
+                    return R, t
             # Check new error
             new_error = indexing_(feature_map_query, torch.flip(new_points_2d_supported, (1,)), im_width, im_height) - feature_ref[mask_supported]
             
