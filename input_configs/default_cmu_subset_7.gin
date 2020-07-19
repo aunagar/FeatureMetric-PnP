@@ -17,12 +17,13 @@ CSV_NAME = "featurePnP_summary.csv"
 
 # Pre-trained model weights
 ImageRetrievalModel.checkpoint_path = 'checkpoints/cmu/weights.pth.tar'
-ImageRetrievalModel.hypercolumn_layers =  [9, 14, 17,21, 24] #[14, 17, 21, 24, 28]
+ImageRetrievalModel.hypercolumn_layers =  [14, 17, 21, 24, 28] #[14, 17, 21, 24, 28]
 
 # Change only first
 SparseToDensePredictor.output_filename = 'sparse_to_dense_predictions.txt'
 SparseToDensePredictor.output_csvname = %CSV_NAME
 SparseToDensePredictor.output_path = %OUTPUT_DIR
+SparseToDensePredictor.cache_filename = 'cache_results.npz'
 SparseToDensePredictor.track = False
 
 # Output parameters

@@ -24,7 +24,8 @@ output*.txt
 scripts.txt
 *.npz
 data/
-
+input_configs/
+results/cmu/
 submit_robotcar.sh
 submit_cmu.sh
 submit_robotcar_subset.sh

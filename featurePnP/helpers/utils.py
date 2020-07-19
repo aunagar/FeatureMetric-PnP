@@ -35,7 +35,7 @@ def cauchy_loss(x):
 
 @gin.register
 def geman_mcclure_loss(x):
-    return barron_loss(x,torch.Tensor([2.0]).type(torch.DoubleTensor))
+    return barron_loss(x,torch.Tensor([-2.0]).type(torch.DoubleTensor))
 
 def barron_loss(x, alpha):
     """Parameterized  & adaptive robust loss function.
