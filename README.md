@@ -5,6 +5,8 @@ We introduce a simple algorithm to refine the estimated pose based on the featur
 This, combined with better feature selection, results in state-of-art night localization on the RobotCar dataset.
 Our method __received the 2nd place award__ in the Visual Localization for Autonomous Vehicles Challenge and has been presented at [VisLocOdomMap](https://sites.google.com/view/vislocslamcvpr2020/home) Workshop at CVPR 2020.
 
+![ffsmall_compressed](https://user-images.githubusercontent.com/61377978/87954211-548e0280-caac-11ea-8041-e5c80ea15c23.gif)
+
 ## Setup
 
 In order to install the required python modules, and complete the directory structure required to run the code, execute the following shell commands: 
