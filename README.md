@@ -45,7 +45,7 @@ python run.py --dataset=cmu --input_config=input_configs/default_cmu_subset_{you
 We recommend a system with large RAM (~20 GB) to run the code since the hypercolumns are heavy.
 In terms of runtime, it will take ~ 30 hrs to run full RobotCar and ~ 24-40 hrs per one slice of CMU (depending on number of query images). 
 
-## Performance Validation
+## Evaluation
 
 After running, a `.txt` file is produced and saved under `results/`. 
 This is the file that should be uploaded to the CVPR 2020 Visual Localization Challenge [website](https://visuallocalization.net) to obtain the quantitative results.
