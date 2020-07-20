@@ -22,7 +22,9 @@ The triangulation `.npz` files can be downloaded from [this link](https://www.dr
 
 The pre-trained weights for the main image retrieval network can be found under `checkpoints/`.
 
-## Running
+Under `externals`, the [D2-Net repo](https://github.com/mihaidusmanu/d2-net.git) should be cloned.
+
+## Run
 
 The configuration files for the parametrization of our code should be placed under `input_configs`.
 In these files, one needs to first set the `RUN_NAME`, `OUTPUT_DIR`, and `CSV_NAME` variables.
