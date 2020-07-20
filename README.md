@@ -3,7 +3,7 @@
 This is the official repository for our project on Deep Direct Sparse-to-Dense Visual Localization for the 3D Vision course at ETH Zurich.
 We introduce a simple algorithm to refine the estimated pose based on the feature-metric error, and demonstrate improved localization accuracy.
 This, combined with better feature selection, results in state-of-art night localization on the RobotCar dataset.
-Our method __received the 2nd place award__ in the Visual Localization for Autonomous Vehicles Challenge and has been presented at [VisLocOdomMap](https://sites.google.com/view/vislocslamcvpr2020/home) Conference at CVPR 2020.
+Our method __received the 2nd place award__ in the Visual Localization for Autonomous Vehicles Challenge and has been presented at [VisLocOdomMap](https://sites.google.com/view/vislocslamcvpr2020/home) Workshop at CVPR 2020.
 
 ## Setup
 
