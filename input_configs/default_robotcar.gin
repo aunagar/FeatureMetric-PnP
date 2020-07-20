@@ -7,20 +7,16 @@ include 's2dhm/configs/network/network.gin'
 include 's2dhm/configs/pose_prediction/sparse_to_dense_pose_prediction.gin'
 include 'featurePnP/model.gin'
 
+# for d2net
+include 's2dhm/configs/network/d2-net.gin'
+
 # Image logs
 plot_correspondences.plot_correspondences.export_folder = 'logs/sparse_to_dense/correspondences/cmu/'
 plot_correspondences.plot_image_retrieval.export_folder = 'logs/sparse_to_dense/nearest_neighbor/cmu/'
 
-# for d2net
-# include 's2dhm/configs/network/d2-net.gin'
-
-RUN_NAME = "normal_robotcar"
-OUTPUT_DIR = "/cluster/scratch/aunagar/robotcar/feature_pyramid_geman_runs/feature_pyramid_geman_day2/"
+RUN_NAME = "robotcar"
+OUTPUT_DIR = "results/robotcar"
 CSV_NAME = "featurePnP_summary.csv"
-
-# Image logs
-plot_correspondences.plot_correspondences.export_folder = "/cluster/scratch/aunagar/robotcar/d2-net_night-rain/logs/sparse_to_dense/correspondences/robotcar/"
-plot_correspondences.plot_image_retrieval.export_folder = "/cluster/scratch/aunagar/robotcar/d2-net_night-rain/logs/sparse_to_dense/nearest_neighbor/robotcar/"
 
 # Pre-trained model weights
 ImageRetrievalModel.checkpoint_path = 'checkpoints/robotcar/weights.pth.tar'
@@ -34,7 +30,7 @@ SparseToDensePredictor.cache_filename = 'cache_results.npz'
 SparseToDensePredictor.track = False
 
 # for d2-net features
-# SparseToDensePredictor.features = 's2dhm' # ['s2dhm' or 'd2-net']
+SparseToDensePredictor.features = 's2dhm' # ['s2dhm' or 'd2-net']
 
 # Output parameters
 IOgin.name = %RUN_NAME
@@ -44,9 +40,6 @@ IOgin.output_dir = %OUTPUT_DIR
 ##Choose Data
 RobotCarDataset.reference_sequences = ['overcast-reference']
 RobotCarDataset.query_sequences = ['dawn', 'dusk', 'night', 'night-rain', 'overcast-summer', 'overcast-winter', 'rain', 'snow', 'sun']
-# RobotCarDataset.query_sequences = ['night', 'night-rain']
-# RobotCarDataset.query_sequences = ['dawn', 'dusk', 'overcast-summer']
-# RobotCarDataset.query_sequences = ['overcast-winter', 'rain', 'snow', 'sun']
 
 
 ## Model Parameters:
