@@ -1,19 +1,19 @@
 # 6-DoF Pose Refinement via Sparse-to-Dense Feature-Metric Optimization
 
-This is the official repository for our project on *Deep Direct Sparse-to-Dense Visual Localization* for the 3D Vision course at ETH Zurich.
+This is the official repository for our project on Deep Direct Sparse-to-Dense Visual Localization for the 3D Vision course at ETH Zurich.
 We introduce a simple algorithm to refine the estimated pose based on the feature-metric error, and demonstrate improved localization accuracy.
 This, combined with better feature selection, results in state-of-art night localization on the RobotCar dataset.
 Our method __received the 2nd place award__ in the Visual Localization for Autonomous Vehicles Challenge and has been presented at [VisLocOdomMap](https://sites.google.com/view/vislocslamcvpr2020/home) Conference at CVPR 2020.
 
 ## Setup
 
-In order to install the required python modules and complete the directory structure required to run the code execute the following shell commands: 
+In order to install the required python modules, and complete the directory structure required to run the code, execute the following shell commands: 
 ```bash
 pip install -r requirements.txt
 mkdir -p data/triangulation
 ```
 
-You need to download either RobotCar-Seasons or Extended CMU-Seasons from the website of the [CVPR 2020 Challenge](https://visuallocalization.net).
+You need to download either __RobotCar-Seasons__ or __Extended CMU-Seasons__ from the website of the [CVPR 2020 Challenge](https://visuallocalization.net).
 Once unpacked, the root of the dataset should be updated accordingly in `s2dm/configs/datasets/<your_dataset>.gin`.  
 
 In addition, we provide a pre-computed reconstruction of both datasets computed using SuperPoint.
