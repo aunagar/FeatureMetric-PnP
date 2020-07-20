@@ -11,8 +11,8 @@ include 'featurePnP/model.gin'
 include 's2dhm/configs/network/d2-net.gin'
 
 # Image logs
-plot_correspondences.plot_correspondences.export_folder = 'logs/sparse_to_dense/correspondences/cmu/'
-plot_correspondences.plot_image_retrieval.export_folder = 'logs/sparse_to_dense/nearest_neighbor/cmu/'
+plot_correspondences.plot_correspondences.export_folder = 'logs/sparse_to_dense/correspondences/robotcar/'
+plot_correspondences.plot_image_retrieval.export_folder = 'logs/sparse_to_dense/nearest_neighbor/robotcar/'
 
 RUN_NAME = "robotcar"
 OUTPUT_DIR = "results/robotcar"
