@@ -38,7 +38,8 @@ To run our code on a certain CMU slice execute:
 python run.py --dataset=cmu --input_config=input_configs/default_cmu_subset_{your id}.gin --cmu_slice={your_id}
 ```
 
-We recommend a system with large RAM (~20 GB) to run the code since hypercolumns are heavy. In terms of RUNTIME, it will take ~ 30 hrs to run full RobotCar and ~ 24-40 hrs per one slice of CMU (depnding on number of query images). 
+We recommend a system with large RAM (~20 GB) to run the code since the hypercolumns are heavy.
+In terms of runtime, it will take ~ 30 hrs to run full RobotCar and ~ 24-40 hrs per one slice of CMU (depending on number of query images). 
 
 ## Performance Validation
 
