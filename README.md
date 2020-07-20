@@ -22,7 +22,7 @@ The triangulation `.npz` files can be downloaded from [this link](https://www.dr
 
 The pre-trained weights for the main image retrieval network can be found under `checkpoints/`.
 
-## Run on CMU
+## Running
 
 The configuration files for the parametrization of our code should be placed under `input_configs`.
 In these files, one needs to first set the `RUN_NAME`, `OUTPUT_DIR`, and `CSV_NAME` variables.
@@ -38,7 +38,7 @@ To run our code on a certain CMU slice execute:
 python run.py --dataset=cmu --input_config=input_configs/default_cmu_subset_{your id}.gin --cmu_slice={your_id}
 ```
 
-## Performance validation
+## Performance Validation
 
 After running, a `.txt` file is produced and saved under `results/`. 
 This is the file that should be uploaded to the CVPR 2020 Visual Localization Challenge [website](https://visuallocalization.net) to obtain the quantitative results.
