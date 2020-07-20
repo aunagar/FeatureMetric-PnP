@@ -43,3 +43,16 @@ python run.py --dataset=cmu --input_config=input_configs/default_cmu_subset_{you
 After running, a `.txt` file is produced and saved under `results/`. 
 This is the file that should be uploaded to the CVPR 2020 Visual Localization Challenge [website](https://visuallocalization.net) to obtain the quantitative results.
 
+## Credits
+
+Our code, (most of the files placed under `s2dhm`) uses and extends the code found in the [S2DHM repo](https://github.com/germain-hug/S2DHM). 
+
+Please consider citing the corresponding publication if you use this work:
+```
+@inproceedings{germain2019sparsetodense,
+  title={Sparse-To-Dense Hypercolumn Matching for Long-Term Visual Localization},
+  author={Germain, H. and Bourmaud, G. and Lepetit, V.},
+  article={International Conference on 3D Vision (3DV)},
+  year={2019}
+}
+```
