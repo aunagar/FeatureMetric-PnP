@@ -43,6 +43,12 @@ python run.py --dataset=cmu --input_config=input_configs/default_cmu_subset_{you
 After running, a `.txt` file is produced and saved under `results/`. 
 This is the file that should be uploaded to the CVPR 2020 Visual Localization Challenge [website](https://visuallocalization.net) to obtain the quantitative results.
 
+## Extras
+
+* The main code of our feature-metric PnP optimizer along with some toy examples, can be found under `featurePnP`.
+* The code for the robotcar exploration that examines the quality of the ground truth poses using epipolar geometry, can be found under `robotcar_exploration`. There is also a dedicated `README` for this folder. 
+* Some visualization scripts can be found under `visualization`.
+
 ## Credits
 
 Our code, (most of the files placed under `s2dhm`) uses and extends the code found in the [S2DHM repo](https://github.com/germain-hug/S2DHM). 
